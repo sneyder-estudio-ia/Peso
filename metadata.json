@@ -1,0 +1,5 @@
+{
+  "name": "Peso",
+  "description": "Una aplicación simple para visualizar ingresos, gastos y ahorros, incluyendo una tarjeta Gemini y botones de acción.",
+  "requestFramePermissions": []
+}

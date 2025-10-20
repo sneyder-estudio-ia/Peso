@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peso</title>
+    <link rel="stylesheet" href="index.css">
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0"
+  }
+}
+</script>
+</head>
+<body>
+    <div class="main-layout">
+        <main class="app-container">
+            <h1 class="app-title" id="app-title-main">Peso</h1>
+            <div id="root"></div>
+        </main>
+        <aside id="stats-panel" class="stats-panel"></aside>
+    </div>
+    <div id="overlay" class="overlay"></div>
+    <script type="module" src="index.tsx"></script>
+</body>
+</html>
