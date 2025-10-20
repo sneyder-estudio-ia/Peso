@@ -1,4 +1,10 @@
 import { appState } from '../state/store.js';
+import { IncomeRecord, ExpenseRecord, SavingRecord } from '../types/index.js';
+
+// Helper to map Spanish day names to JS getDay() indices (0=Sun, 1=Mon, etc.)
+const dayNameToIndex: { [key: string]: number } = {
+    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+};
 
 export const createCalendar = (date: Date, onDateChange: (newDate: Date) => void) => {
     const calendarContainer = document.createElement('div');
@@ -8,25 +14,74 @@ export const createCalendar = (date: Date, onDateChange: (newDate: Date) => void
         calendarContainer.innerHTML = ''; // Clear previous render
 
         const year = currentDate.getFullYear();
-        const month = currentDate.getMonth();
+        const month = currentDate.getMonth(); // 0-11
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        // Get all records and group them by date
-        const recordsByDate: { [key: string]: { income: boolean; expense: boolean } } = {};
+        // Object to hold which days have which type of record
+        const recordsByDate: { [key: string]: { income: boolean; expense: boolean; savings: boolean } } = {};
         
-        appState.incomeRecords.forEach(record => {
-            if (record.date) {
-                if (!recordsByDate[record.date]) recordsByDate[record.date] = { income: false, expense: false };
-                recordsByDate[record.date].income = true;
-            }
-        });
+        const populateRecordsByDate = () => {
+            // Helper function to process both recurrent and one-time records for a given type
+            const processRecords = (
+                records: (IncomeRecord | ExpenseRecord | SavingRecord)[], 
+                type: 'income' | 'expense' | 'savings'
+            ) => {
+                records.forEach(record => {
+                    // Process one-time records
+                    if (record.type === 'Único' && record.date) {
+                        const [recYear, recMonth] = record.date.split('-').map(Number);
+                        // Check if the record is in the currently viewed month and year
+                        if (recYear === year && recMonth === month + 1) {
+                            if (!recordsByDate[record.date]) recordsByDate[record.date] = { income: false, expense: false, savings: false };
+                            recordsByDate[record.date][type] = true;
+                        }
+                    }
+                    // Process recurrent records
+                    else if (record.type === 'Recurrente' && record.recurrence) {
+                        // For fixed-duration expenses, check if they are completed
+                        const expenseRecord = record as ExpenseRecord;
+                        if (type === 'expense' && !expenseRecord.isInfinite && expenseRecord.durationInMonths && (expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths) {
+                            return; // Skip completed expenses
+                        }
 
-        appState.expenseRecords.forEach(record => {
-            if (record.date) {
-                if (!recordsByDate[record.date]) recordsByDate[record.date] = { income: false, expense: false };
-                recordsByDate[record.date].expense = true;
-            }
-        });
+                        for (let day = 1; day <= daysInMonth; day++) {
+                            const checkDate = new Date(year, month, day);
+                            let eventHappens = false;
+                            
+                            switch (record.recurrence.type) {
+                                case 'Diario':
+                                    eventHappens = true;
+                                    break;
+                                case 'Semanal':
+                                    const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek!];
+                                    if (checkDate.getDay() === targetDayIndex) {
+                                        eventHappens = true;
+                                    }
+                                    break;
+                                case 'Quincenal':
+                                case 'Mensual':
+                                    if (record.recurrence.daysOfMonth?.includes(day)) {
+                                        eventHappens = true;
+                                    }
+                                    break;
+                            }
 
+                            if (eventHappens) {
+                                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                if (!recordsByDate[dateString]) recordsByDate[dateString] = { income: false, expense: false, savings: false };
+                                recordsByDate[dateString][type] = true;
+                            }
+                        }
+                    }
+                });
+            };
+            
+            processRecords(appState.incomeRecords, 'income');
+            processRecords(appState.expenseRecords, 'expense');
+            processRecords(appState.savingRecords, 'savings');
+        };
+        
+        populateRecordsByDate();
 
         // --- Header ---
         const header = document.createElement('div');
@@ -74,12 +129,10 @@ export const createCalendar = (date: Date, onDateChange: (newDate: Date) => void
 
         // Days
         const firstDayOfMonth = new Date(year, month, 1);
-        const lastDayOfMonth = new Date(year, month + 1, 0);
-        const daysInMonth = lastDayOfMonth.getDate();
         
-        let startingDay = firstDayOfMonth.getDay(); // 0=Sun, 1=Mon, ...
-        if (startingDay === 0) startingDay = 7; // Sunday is 7
-        startingDay -= 1; // 0=Mon, 1=Tue, ...
+        // Calculate the number of empty cells needed before the 1st day of the month
+        // getDay() is 0=Sun, 1=Mon. Our week starts on Monday.
+        const startingDay = (firstDayOfMonth.getDay() + 6) % 7;
 
         // Empty cells for the start of the month
         for (let i = 0; i < startingDay; i++) {
@@ -114,6 +167,11 @@ export const createCalendar = (date: Date, onDateChange: (newDate: Date) => void
                     const expenseDot = document.createElement('div');
                     expenseDot.className = 'record-dot expense-dot';
                     dotsContainer.appendChild(expenseDot);
+                }
+                if (recordsByDate[dateString].savings) {
+                    const savingsDot = document.createElement('div');
+                    savingsDot.className = 'record-dot savings-dot';
+                    dotsContainer.appendChild(savingsDot);
                 }
                 dayCell.appendChild(dotsContainer);
             }

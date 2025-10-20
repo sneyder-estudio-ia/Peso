@@ -29,11 +29,11 @@ const calculateProjectedMonthValue = (
                 total += record.amount;
             }
         } else if (record.type === 'Recurrente' && record.recurrence) {
-            const isExpenseWithDuration = 'durationInMonths' in record && typeof record.durationInMonths === 'number' && record.durationInMonths > 0;
+            const expenseRecord = record as ExpenseRecord;
+            const isExpenseWithDuration = 'durationInMonths' in expenseRecord && typeof expenseRecord.durationInMonths === 'number' && expenseRecord.durationInMonths > 0;
             let isCompleted = false;
 
-            if (isExpenseWithDuration) {
-                const expenseRecord = record as ExpenseRecord;
+            if (isExpenseWithDuration && !expenseRecord.isInfinite) {
                 if ((expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths!) {
                     isCompleted = true;
                 }
@@ -108,11 +108,11 @@ const calculateValueInDateRange = (
             }
 
         } else if (record.type === 'Recurrente' && record.recurrence) {
-            const isExpenseWithDuration = 'durationInMonths' in record && typeof record.durationInMonths === 'number' && record.durationInMonths > 0;
+            const expenseRecord = record as ExpenseRecord;
+            const isExpenseWithDuration = 'durationInMonths' in expenseRecord && typeof expenseRecord.durationInMonths === 'number' && expenseRecord.durationInMonths > 0;
             let isCompleted = false;
 
-            if (isExpenseWithDuration) {
-                const expenseRecord = record as ExpenseRecord;
+            if (isExpenseWithDuration && !expenseRecord.isInfinite) {
                 if ((expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths!) {
                     isCompleted = true;
                 }
@@ -163,19 +163,18 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
 
-    // --- Calculate Most Common Income Frequency ---
-    const recurringIncomes = appState.incomeRecords.filter(r => r.type === 'Recurrente' && r.recurrence);
-    const frequencyCounts = recurringIncomes.reduce((acc, record) => {
-        const freqType = record.recurrence!.type;
-        acc[freqType] = (acc[freqType] || 0) + 1;
-        return acc;
-    }, {} as Record<string, number>);
+    // --- Determine Dominant Frequency from all recurring records, prioritizing higher frequencies ---
+    const allRecurringRecords = [...appState.incomeRecords, ...appState.expenseRecords]
+        .filter(r => r.type === 'Recurrente' && r.recurrence);
 
-    let mostCommonFrequency: string | null = null;
-    if (Object.keys(frequencyCounts).length > 0) {
-        mostCommonFrequency = Object.keys(frequencyCounts).reduce((a, b) => frequencyCounts[a] > frequencyCounts[b] ? a : b);
+    let dominantFrequency = 'Mensual'; // Default
+    if (allRecurringRecords.some(r => r.recurrence!.type === 'Diario')) {
+        dominantFrequency = 'Diario';
+    } else if (allRecurringRecords.some(r => r.recurrence!.type === 'Semanal')) {
+        dominantFrequency = 'Semanal';
+    } else if (allRecurringRecords.some(r => r.recurrence!.type === 'Quincenal')) {
+        dominantFrequency = 'Quincenal';
     }
-    const dominantFrequency = mostCommonFrequency || 'Mensual';
 
     // --- Define the current payment period based on the dominant frequency ---
     let periodStartDate: Date;
@@ -185,6 +184,10 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
     switch (dominantFrequency) {
+        case 'Diario':
+            periodStartDate = new Date(now.setHours(0,0,0,0));
+            periodEndDate = new Date(now.setHours(23,59,59,999));
+            break;
         case 'Semanal':
             const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
             const diff = today - (dayOfWeek === 0 ? 6 : dayOfWeek - 1); // Get to last Monday
@@ -192,32 +195,15 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
             periodEndDate = new Date(currentYear, currentMonth, diff + 6);
             break;
         case 'Quincenal':
-            // FIX: Search for quincenal records in both income AND expenses to find user-defined paydays.
-            const allRecurringRecords = [...appState.incomeRecords, ...appState.expenseRecords].filter(r => r.type === 'Recurrente' && r.recurrence);
-            const quincenalRecord = allRecurringRecords.find(r => r.recurrence?.type === 'Quincenal');
-            const payDays = quincenalRecord?.recurrence?.daysOfMonth?.sort((a,b) => a-b) || [15, 30];
-
-            const firstPayDay = payDays[0] || 15;
-            const secondPayDay = payDays[1] || daysInCurrentMonth;
-
-            if (today <= firstPayDay) {
-                const prevMonth = new Date(currentYear, currentMonth, 0);
-                const secondPayDayLastMonth = quincenalRecord?.recurrence?.daysOfMonth?.sort((a,b) => a-b)[1] || prevMonth.getDate();
-                periodStartDate = new Date(prevMonth.getFullYear(), prevMonth.getMonth(), secondPayDayLastMonth + 1);
-                periodEndDate = new Date(currentYear, currentMonth, firstPayDay);
-            } else if (today > firstPayDay && today <= secondPayDay) {
-                periodStartDate = new Date(currentYear, currentMonth, firstPayDay + 1);
-                periodEndDate = new Date(currentYear, currentMonth, secondPayDay);
-            } else { // today is after the second payday
-                periodStartDate = new Date(currentYear, currentMonth, secondPayDay + 1);
-                const nextMonth = new Date(currentYear, currentMonth + 1, 1);
-                const firstPayDayNextMonth = quincenalRecord?.recurrence?.daysOfMonth?.sort((a,b) => a-b)[0] || 15;
-                periodEndDate = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), firstPayDayNextMonth);
+            if (today <= 15) {
+                // First fortnight
+                periodStartDate = new Date(currentYear, currentMonth, 1);
+                periodEndDate = new Date(currentYear, currentMonth, 15);
+            } else {
+                // Second fortnight
+                periodStartDate = new Date(currentYear, currentMonth, 16);
+                periodEndDate = new Date(currentYear, currentMonth, daysInCurrentMonth);
             }
-            break;
-        case 'Diario':
-            periodStartDate = new Date(now.setHours(0,0,0,0));
-            periodEndDate = new Date(now.setHours(23,59,59,999));
             break;
         case 'Mensual':
         default:
@@ -278,13 +264,11 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     const primaryValueWrapper = document.createElement('div');
     primaryValueWrapper.className = 'primary-value-wrapper';
 
-    // Add frequency label FIRST if it exists
-    if (mostCommonFrequency) {
-        const frequencyLabelEl = document.createElement('div');
-        frequencyLabelEl.className = 'frequency-label';
-        frequencyLabelEl.textContent = dominantFrequency;
-        primaryValueWrapper.appendChild(frequencyLabelEl);
-    }
+    // Add frequency label
+    const frequencyLabelEl = document.createElement('div');
+    frequencyLabelEl.className = 'frequency-label';
+    frequencyLabelEl.textContent = dominantFrequency;
+    primaryValueWrapper.appendChild(frequencyLabelEl);
     
     // THEN add the primary value (Net Income for the period)
     const netIncomeForPeriod = incomeInCurrentPeriod - expenseInCurrentPeriod;

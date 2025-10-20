@@ -126,14 +126,46 @@ export const renderExpenseFormView = (
             setTimeout(() => navigate('expenseList'), 500);
         };
     } else if (type === 'Recurrente') {
-        const totalAmountField = createFormField('Monto Total', 'number', 'expense-total-amount', '0');
         const installmentAmountField = createFormField('Monto de Cuota', 'number', 'expense-amount', '0');
+        
+        const isInfiniteGroup = document.createElement('div');
+        isInfiniteGroup.className = 'form-group radio-option'; // Re-use style for alignment
+        const isInfiniteCheckbox = document.createElement('input');
+        isInfiniteCheckbox.type = 'checkbox';
+        isInfiniteCheckbox.id = 'expense-is-infinite';
+        isInfiniteCheckbox.name = 'expense-is-infinite';
+        const isInfiniteLabel = document.createElement('label');
+        isInfiniteLabel.htmlFor = 'expense-is-infinite';
+        isInfiniteLabel.textContent = 'Gasto Fijo (Sin Límite)';
+        isInfiniteLabel.style.cursor = 'pointer';
+        isInfiniteGroup.appendChild(isInfiniteCheckbox);
+        isInfiniteGroup.appendChild(isInfiniteLabel);
+
+        const totalAmountField = createFormField('Monto Total', 'number', 'expense-total-amount', '0');
         const durationField = createFormField('Duración (meses)', 'number', 'expense-duration', 'Ej: 24');
         const monthsPaidField = createFormField('Meses abonados', 'number', 'expense-months-paid', 'Ej: 3');
-        form.appendChild(totalAmountField);
+        
         form.appendChild(installmentAmountField);
+        form.appendChild(isInfiniteGroup);
+        form.appendChild(totalAmountField);
         form.appendChild(durationField);
         form.appendChild(monthsPaidField);
+
+        const toggleInfiniteFields = (isInfinite: boolean) => {
+            totalAmountField.style.display = isInfinite ? 'none' : 'flex';
+            durationField.style.display = isInfinite ? 'none' : 'flex';
+            monthsPaidField.style.display = isInfinite ? 'none' : 'flex';
+        };
+
+        isInfiniteCheckbox.onchange = () => {
+            toggleInfiniteFields(isInfiniteCheckbox.checked);
+        };
+        
+        if (recordToEdit?.isInfinite) {
+            isInfiniteCheckbox.checked = true;
+        }
+        toggleInfiniteFields(isInfiniteCheckbox.checked);
+
 
         const frequencyGroup = document.createElement('div');
         frequencyGroup.className = 'form-group';
@@ -225,14 +257,20 @@ export const renderExpenseFormView = (
         saveButton.onclick = () => {
             const formData = new FormData(form);
             const name = formData.get('expense-name') as string;
-            const totalAmountStr = formData.get('expense-total-amount') as string;
             const installmentAmountStr = formData.get('expense-amount') as string;
+            const frequencyType = formData.get('expense-frequency') as RecurrenceRule['type'];
+            const isInfinite = (form.querySelector('#expense-is-infinite') as HTMLInputElement).checked;
+
+            const totalAmountStr = formData.get('expense-total-amount') as string;
             const durationInMonthsStr = formData.get('expense-duration') as string;
             const monthsPaidStr = formData.get('expense-months-paid') as string;
-            const frequencyType = formData.get('expense-frequency') as RecurrenceRule['type'];
 
-            if (!name || !totalAmountStr || !installmentAmountStr || !durationInMonthsStr || !frequencyType) {
-                alert('Por favor, complete Nombre, Monto Total, Monto de Cuota, Duración y Frecuencia.');
+            if (!name || !installmentAmountStr || !frequencyType) {
+                alert('Por favor, complete Nombre, Monto de Cuota y Frecuencia.');
+                return;
+            }
+            if (!isInfinite && (!totalAmountStr || !durationInMonthsStr)) {
+                alert('Para un gasto con límite, debe indicar el Monto Total y la Duración.');
                 return;
             }
 
@@ -249,11 +287,12 @@ export const renderExpenseFormView = (
                 name: name,
                 category: formData.get('expense-category') as string || 'General',
                 amount: parseCurrency(installmentAmountStr),
-                totalAmount: parseCurrency(totalAmountStr),
-                durationInMonths: parseCurrency(durationInMonthsStr),
-                installmentsPaid: monthsPaidStr ? parseCurrency(monthsPaidStr) : 0,
                 description: formData.get('expense-description') as string,
                 recurrence: recurrence,
+                isInfinite: isInfinite,
+                totalAmount: isInfinite ? undefined : parseCurrency(totalAmountStr),
+                durationInMonths: isInfinite ? undefined : parseCurrency(durationInMonthsStr),
+                installmentsPaid: isInfinite ? undefined : (monthsPaidStr ? parseCurrency(monthsPaidStr) : 0),
             };
 
             if (isEditMode) {
@@ -275,10 +314,12 @@ export const renderExpenseFormView = (
         (categoryField.querySelector('input') as HTMLInputElement).value = recordToEdit.category;
         (descriptionField.querySelector('textarea') as HTMLTextAreaElement).value = recordToEdit.description;
         if (type === 'Recurrente') {
-            (form.querySelector('[name="expense-total-amount"]') as HTMLInputElement).value = formatCurrency(recordToEdit.totalAmount);
             (form.querySelector('[name="expense-amount"]') as HTMLInputElement).value = formatCurrency(recordToEdit.amount);
-            (form.querySelector('[name="expense-duration"]') as HTMLInputElement).value = String(recordToEdit.durationInMonths || '');
-            (form.querySelector('[name="expense-months-paid"]') as HTMLInputElement).value = String(recordToEdit.installmentsPaid || '');
+            if (!recordToEdit.isInfinite) {
+                (form.querySelector('[name="expense-total-amount"]') as HTMLInputElement).value = formatCurrency(recordToEdit.totalAmount);
+                (form.querySelector('[name="expense-duration"]') as HTMLInputElement).value = String(recordToEdit.durationInMonths || '');
+                (form.querySelector('[name="expense-months-paid"]') as HTMLInputElement).value = String(recordToEdit.installmentsPaid || '');
+            }
         }
     }
 

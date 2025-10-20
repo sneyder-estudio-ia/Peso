@@ -35,6 +35,7 @@ export interface ExpenseRecord {
     recurrence?: RecurrenceRule; // For 'Recurrente'
     durationInMonths?: number;
     installmentsPaid?: number;
+    isInfinite?: boolean;
 }
 
 export interface SavingRecord {

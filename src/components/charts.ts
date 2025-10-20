@@ -1,4 +1,6 @@
 import { formatCurrency } from '../utils/currency.js';
+import { ExpenseRecord } from '../types/index.js';
+import { formatRecurrence } from '../utils/helpers.js';
 
 interface ChartData {
     label: string;
@@ -6,8 +8,9 @@ interface ChartData {
     color: string;
 }
 
-export const createPieChart = (data: ChartData[], total: number) => {
-    const container = document.createElement('div');
+export const createExpenseBreakdownChart = (data: ChartData[], total: number, allExpenses: ExpenseRecord[]) => {
+    const mainContainer = document.createElement('div');
+
     const chartContainer = document.createElement('div');
     chartContainer.className = 'pie-chart-container';
 
@@ -17,11 +20,9 @@ export const createPieChart = (data: ChartData[], total: number) => {
 
     let accumulatedPercentage = 0;
     const radius = 15.9154943092; // Radius for a circumference of 100
-    const circumference = 2 * Math.PI * radius;
 
     data.forEach(item => {
-        const percentage = (item.value / total) * 100;
-        const offset = circumference - (accumulatedPercentage / 100) * circumference;
+        const percentage = total > 0 ? (item.value / total) * 100 : 0;
 
         const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         circle.setAttribute('r', String(radius));
@@ -29,11 +30,16 @@ export const createPieChart = (data: ChartData[], total: number) => {
         circle.setAttribute('cy', '18');
         circle.setAttribute('fill', 'transparent');
         circle.setAttribute('stroke', item.color);
-        circle.setAttribute('stroke-width', '3');
-        circle.setAttribute('stroke-dasharray', `${percentage} ${100 - percentage}`);
+        circle.setAttribute('stroke-width', '3.5');
+        // Use a tiny gap to distinguish segments
+        const segmentLength = percentage > 1 ? percentage - 0.5 : percentage;
+        const gapLength = 100 - segmentLength;
+        circle.setAttribute('stroke-dasharray', `${segmentLength} ${gapLength}`);
         circle.setAttribute('stroke-dashoffset', String(-accumulatedPercentage));
         circle.style.transform = `rotate(-90deg)`;
         circle.style.transformOrigin = 'center';
+        circle.classList.add('pie-segment');
+        circle.dataset.label = item.label;
         
         svg.appendChild(circle);
         accumulatedPercentage += percentage;
@@ -44,10 +50,17 @@ export const createPieChart = (data: ChartData[], total: number) => {
     const legend = document.createElement('ul');
     legend.className = 'pie-chart-legend';
 
+    const detailsContainer = document.createElement('div');
+    detailsContainer.className = 'expense-details-container';
+    detailsContainer.style.display = 'none';
+
+    let activeLabel: string | null = null;
+
     data.forEach(item => {
-        const percentage = (item.value / total) * 100;
+        const percentage = total > 0 ? (item.value / total) * 100 : 0;
 
         const li = document.createElement('li');
+        li.dataset.label = item.label;
         
         const colorBox = document.createElement('span');
         colorBox.className = 'legend-color-box';
@@ -70,10 +83,77 @@ export const createPieChart = (data: ChartData[], total: number) => {
         li.appendChild(percentageEl);
         li.appendChild(value);
         legend.appendChild(li);
+
+        // --- Interactivity ---
+        const segment = svg.querySelector(`.pie-segment[data-label="${item.label}"]`);
+
+        li.onmouseenter = () => {
+            segment?.classList.add('highlight');
+        };
+        li.onmouseleave = () => {
+            segment?.classList.remove('highlight');
+        };
+        li.onclick = () => {
+            if (activeLabel === item.label) {
+                detailsContainer.style.display = 'none';
+                activeLabel = null;
+                li.classList.remove('active');
+                return;
+            }
+            activeLabel = item.label;
+
+            // Update legend active state
+            legend.querySelector('.active')?.classList.remove('active');
+            li.classList.add('active');
+
+            // Populate details
+            const categoryExpenses = allExpenses
+                .filter(exp => (exp.category || 'General') === item.label)
+                .sort((a,b) => b.amount - a.amount);
+
+            detailsContainer.innerHTML = '';
+            const detailsTitle = document.createElement('h4');
+            detailsTitle.className = 'expense-details-title';
+            detailsTitle.textContent = `Transacciones en "${item.label}"`;
+            detailsContainer.appendChild(detailsTitle);
+
+            const list = document.createElement('div');
+            list.className = 'expense-details-list';
+
+            if (categoryExpenses.length > 0) {
+                categoryExpenses.forEach(exp => {
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'expense-details-list-item';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'details-item-name';
+                    nameSpan.textContent = exp.name;
+
+                    const dateSpan = document.createElement('span');
+                    dateSpan.className = 'details-item-date';
+                    dateSpan.textContent = exp.date || (exp.recurrence ? formatRecurrence(exp.recurrence) : '');
+
+                    const amountSpan = document.createElement('span');
+                    amountSpan.className = 'details-item-amount';
+                    amountSpan.textContent = `-$ ${formatCurrency(exp.amount)}`;
+
+                    itemEl.appendChild(nameSpan);
+                    itemEl.appendChild(dateSpan);
+                    itemEl.appendChild(amountSpan);
+                    list.appendChild(itemEl);
+                });
+            } else {
+                list.textContent = 'No se encontraron transacciones.';
+            }
+
+            detailsContainer.appendChild(list);
+            detailsContainer.style.display = 'block';
+        };
     });
     
-    container.appendChild(chartContainer);
-    container.appendChild(legend);
+    mainContainer.appendChild(chartContainer);
+    mainContainer.appendChild(legend);
+    mainContainer.appendChild(detailsContainer);
 
-    return container;
+    return mainContainer;
 };

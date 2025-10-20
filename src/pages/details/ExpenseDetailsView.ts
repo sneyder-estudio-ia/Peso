@@ -31,8 +31,8 @@ export const renderExpenseDetailsView = (container: HTMLElement, navigate: Navig
     container.appendChild(header);
     container.appendChild(title);
 
-    // --- Donut Chart for Recurrent Expenses ---
-    if (record.type === 'Recurrente' && record.totalAmount && record.durationInMonths && typeof record.installmentsPaid !== 'undefined') {
+    // --- Donut Chart for Recurrent Expenses (only if not infinite) ---
+    if (record.type === 'Recurrente' && !record.isInfinite && record.totalAmount && record.durationInMonths && typeof record.installmentsPaid !== 'undefined') {
         const totalPaid = (record.installmentsPaid || 0) * record.amount;
         const percentage = record.totalAmount > 0 ? (totalPaid / record.totalAmount) * 100 : 0;
         const circumference = 2 * Math.PI * 15.9154943092; // Radius that gives circumference of 100
@@ -94,7 +94,7 @@ export const renderExpenseDetailsView = (container: HTMLElement, navigate: Navig
     detailsContainer.appendChild(createDetailItem('Tipo:', record.type));
     detailsContainer.appendChild(createDetailItem('Categoría:', record.category));
     
-    if (record.type === 'Recurrente' && record.totalAmount) {
+    if (record.type === 'Recurrente' && record.totalAmount && !record.isInfinite) {
         detailsContainer.appendChild(createDetailItem('Monto Total:', `$ ${formatCurrency(record.totalAmount)}`));
         detailsContainer.appendChild(createDetailItem('Monto de Cuota:', `$ ${formatCurrency(record.amount)}`));
     } else {
@@ -107,10 +107,10 @@ export const renderExpenseDetailsView = (container: HTMLElement, navigate: Navig
     if (record.recurrence) {
         detailsContainer.appendChild(createDetailItem('Frecuencia:', formatRecurrence(record.recurrence)));
     }
-    if (record.durationInMonths) {
+    if (record.durationInMonths && !record.isInfinite) {
         detailsContainer.appendChild(createDetailItem('Duración:', `${record.durationInMonths} meses`));
     }
-    if (typeof record.installmentsPaid !== 'undefined') {
+    if (typeof record.installmentsPaid !== 'undefined' && !record.isInfinite) {
         detailsContainer.appendChild(createDetailItem('Meses Abonados:', record.installmentsPaid));
          if (record.durationInMonths) {
             const monthsRemaining = record.durationInMonths - record.installmentsPaid;

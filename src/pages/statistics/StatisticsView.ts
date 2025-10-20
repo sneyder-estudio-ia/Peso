@@ -1,7 +1,7 @@
 import { appState } from '../../state/store.js';
 import { createCard, createSimpleCard } from '../../components/common.js';
 import { formatCurrency } from '../../utils/currency.js';
-import { createPieChart } from '../../components/charts.js';
+import { createExpenseBreakdownChart } from '../../components/charts.js';
 import { createCalendar } from '../../components/Calendar.js';
 
 const categoryColors = [
@@ -83,8 +83,8 @@ export const renderStatisticsView = (container: HTMLElement, navigate: (view: 's
             }))
             .sort((a, b) => b.value - a.value);
 
-        const pieChart = createPieChart(chartData, totalExpense);
-        expenseCard.appendChild(pieChart);
+        const breakdownChart = createExpenseBreakdownChart(chartData, totalExpense, appState.expenseRecords);
+        expenseCard.appendChild(breakdownChart);
 
     } else {
         const emptyMessage = document.createElement('p');

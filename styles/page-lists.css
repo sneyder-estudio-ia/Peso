@@ -1,0 +1,72 @@
+/* --- Income Page Styles --- */
+
+.income-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.btn.btn-back {
+    background-color: #21262d;
+    border: 1px solid #30363d;
+    padding: 5px 15px;
+    font-size: 0.9rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px;
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #c9d1d9;
+    font-size: 1rem;
+    box-sizing: border-box;
+    margin-top: 10px;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #388bfd;
+}
+
+.filter-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    width: 100%;
+}
+
+.btn-filter {
+    background-color: #21262d;
+    border: 1px solid #30363d;
+    flex-grow: 1;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+}
+
+.btn-filter.active {
+    background-color: #388bfd;
+    border-color: #388bfd;
+    color: white;
+}
+
+#income-list-container,
+#expense-list-container,
+#savings-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+#dashboard-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+    width: 100%;
+}
