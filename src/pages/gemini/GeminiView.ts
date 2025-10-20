@@ -225,7 +225,7 @@ const _deleteSalary = (args: { salaryId: string }, onSave: () => void): { result
 };
 
 const initializeGemini = () => {
-    const apiKey = process.env.API_KEY;
+    const apiKey = appState.userProfile.geminiApiKey;
     if (apiKey) {
         try {
             ai = new GoogleGenAI({ apiKey });
@@ -522,7 +522,7 @@ export const renderGeminiView = (container: HTMLElement, navigate: NavigateFunct
     container.appendChild(geminiWrapper);
 
     if (!ai) {
-        addMessageToChat('Hola, soy tu asistente financiero. Parece que la API de Gemini **no está configurada** en el entorno de esta aplicación. No podré responder a tus consultas.', 'gemini');
+        addMessageToChat('Hola, soy tu asistente financiero. Para poder ayudarte, necesitas configurar tu API Key de Gemini. Ve a **Ajustes** (desliza desde la derecha o en el panel lateral en escritorio), ingresa tu clave en la sección de Gemini y guárdala. ¡Luego vuelve aquí!', 'gemini');
         messageInput.disabled = true;
         sendButton.disabled = true;
         attachButton.disabled = true;
