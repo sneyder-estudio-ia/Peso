@@ -1,4 +1,4 @@
-import { createSimpleCard } from '../../components/common.js';
+import { createSimpleCard, showConfirmationModal } from '../../components/common.js';
 import { appState, saveState } from '../../state/store.js';
 import { showToast } from '../../components/Toast.js';
 import { formatCurrency, parseCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
@@ -53,15 +53,19 @@ const renderSalariesList = () => {
 };
 
 const deleteSalary = (salaryId) => {
-    if (confirm('¿Estás seguro de que quieres borrar este salario?')) {
-        appState.userProfile.salaries = (appState.userProfile.salaries || []).filter(s => s.id !== salaryId);
-        // Also delete the corresponding income record
-        appState.incomeRecords = appState.incomeRecords.filter(rec => rec.salaryId !== salaryId);
+    showConfirmationModal(
+        'Confirmar Borrado de Salario',
+        '¿Estás seguro de que quieres borrar este salario? Esto también eliminará permanentemente el registro de ingreso recurrente asociado. Esta acción no se puede deshacer.',
+        () => {
+            appState.userProfile.salaries = (appState.userProfile.salaries || []).filter(s => s.id !== salaryId);
+            // Also delete the corresponding income record
+            appState.incomeRecords = appState.incomeRecords.filter(rec => rec.salaryId !== salaryId);
 
-        saveState(appState);
-        showToast('Salario borrado con éxito.');
-        renderSalariesList();
-    }
+            saveState(appState);
+            showToast('Salario borrado con éxito.');
+            renderSalariesList();
+        }
+    );
 };
 
 const openSalaryModal = (salaryId) => {
@@ -303,7 +307,15 @@ const createSalaryCard = (salary) => {
     editButton.setAttribute('aria-label', `Editar salario ${salary.name}`);
     editButton.onclick = (e) => {
         e.stopPropagation();
-        openSalaryModal(salary.id);
+        showConfirmationModal(
+            'Confirmar Edición',
+            '¿Estás seguro de que quieres editar este salario?',
+            () => {
+                openSalaryModal(salary.id);
+            },
+            'btn-add',
+            'Editar'
+        );
     };
 
     const deleteButton = document.createElement('button');
