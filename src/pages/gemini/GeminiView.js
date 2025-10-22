@@ -1,21 +1,12 @@
 
-
 import { GoogleGenAI } from 'https://esm.run/@google/genai';
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 import { appState } from '../../state/store.js';
 
-// This is a simplified navigate function type for this component's needs
-type NavigateFunction = (view: string, state?: any) => void;
-
-interface ChatMessage {
-    role: 'user' | 'model';
-    text: string;
-}
-
 // Keep chat history in memory for the session.
-const chatHistory: ChatMessage[] = [];
+const chatHistory = [];
 
-const renderChatHistory = (chatContainer: HTMLElement) => {
+const renderChatHistory = (chatContainer) => {
     chatContainer.innerHTML = '';
     chatHistory.forEach(message => {
         const messageElement = document.createElement('div');
@@ -24,7 +15,7 @@ const renderChatHistory = (chatContainer: HTMLElement) => {
         // Use marked to render Markdown from the model. Sanitize in a real app.
         if (message.role === 'model') {
              try {
-                messageElement.innerHTML = marked.parse(message.text) as string;
+                messageElement.innerHTML = marked.parse(message.text);
              } catch (e) {
                 console.error('Error parsing markdown:', e);
                 messageElement.textContent = message.text;
@@ -60,9 +51,9 @@ const getFinancialSummary = () => {
 };
 
 export const renderGeminiView = (
-    container: HTMLElement,
-    navigate: NavigateFunction,
-    rerenderStats: () => void, // Even if unused, it's in the function signature
+    container,
+    navigate,
+    rerenderStats
 ) => {
     container.innerHTML = ''; // Clear previous content
 
@@ -128,7 +119,7 @@ export const renderGeminiView = (
     }
     renderChatHistory(chatContainer);
 
-    const handleSendMessage = async (e: Event) => {
+    const handleSendMessage = async (e) => {
         e.preventDefault();
         const userInput = input.value.trim();
         if (!userInput) return;
