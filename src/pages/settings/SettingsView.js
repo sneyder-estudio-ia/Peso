@@ -337,7 +337,7 @@ const createSalaryCard = (salary) => {
     return card;
 };
 
-export const renderSettingsView = (container, navigate) => {
+export const renderSettingsView = (container, navigate, mainNavigate) => {
     container.innerHTML = '';
 
     const titleContainer = document.createElement('div');
@@ -494,15 +494,22 @@ export const renderSettingsView = (container, navigate) => {
     deleteAllButton.style.width = '100%';
     deleteAllButton.style.marginTop = '15px';
     deleteAllButton.onclick = () => {
-        if (confirm('¿Estás seguro de que quieres borrar todos los datos de registros? Tu perfil no será modificado. Esta acción no se puede deshacer.')) {
-            appState.incomeRecords = [];
-            appState.expenseRecords = [];
-            appState.savingRecords = [];
-            saveState(appState);
-            showToast('Todos los registros han sido borrados.');
-            
-            setTimeout(() => window.location.reload(), 1000);
-        }
+        showConfirmationModal(
+            'Confirmar Borrado Total',
+            'Estás a punto de borrar permanentemente todos los registros de ingresos, gastos y ahorros. Tu perfil de usuario no será modificado. ¿Deseas continuar? Esta acción no se puede deshacer.',
+            () => {
+                appState.incomeRecords = [];
+                appState.expenseRecords = [];
+                appState.savingRecords = [];
+                saveState(appState);
+                showToast('Todos los registros han sido borrados.');
+                
+                setTimeout(() => {
+                    mainNavigate('dashboard', {});
+                    navigate('statistics');
+                }, 1000);
+            }
+        );
     };
 
     dataCard.appendChild(deleteAllButton);

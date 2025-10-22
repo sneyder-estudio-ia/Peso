@@ -95,7 +95,7 @@ const navigateToStatsPanel = (view: StatsPanelViewType) => {
             renderStatisticsView(statsPanel, navigateToStatsPanel);
             break;
         case 'settings':
-            renderSettingsView(statsPanel, navigateToStatsPanel);
+            renderSettingsView(statsPanel, navigateToStatsPanel, navigateTo);
             break;
         default:
             renderStatisticsView(statsPanel, navigateToStatsPanel);
