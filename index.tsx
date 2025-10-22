@@ -1,5 +1,3 @@
-
-
 /**
  * @license
  * Copyright 2024 Google LLC
@@ -29,7 +27,6 @@ import { renderExpenseDetailsView } from './src/pages/details/ExpenseDetailsView
 import { renderSavingsDetailsView } from './src/pages/details/SavingsDetailsView.js';
 import { renderStatisticsView } from './src/pages/statistics/StatisticsView.js';
 import { renderSettingsView } from './src/pages/settings/SettingsView.js';
-import { renderGeminiView } from './src/pages/gemini/GeminiView.js';
 
 const root = document.getElementById('root');
 const mainAppTitle = document.getElementById('app-title-main');
@@ -48,8 +45,7 @@ type ViewType =
     | 'savingsForm'
     | 'incomeDetails'
     | 'expenseDetails'
-    | 'savingsDetails'
-    | 'gemini';
+    | 'savingsDetails';
 
 type StatsPanelViewType = 'statistics' | 'settings';
 
@@ -107,12 +103,6 @@ const navigateToStatsPanel = (view: StatsPanelViewType) => {
 };
 
 const navigateTo = (view: ViewType, state: NavigationState = {}) => {
-    if (view === 'gemini') {
-        document.body.classList.add('gemini-fullscreen');
-    } else {
-        document.body.classList.remove('gemini-fullscreen');
-    }
-    
     currentView = view;
     currentState = state;
     const { recordType, recordId } = state;
@@ -151,9 +141,6 @@ const navigateTo = (view: ViewType, state: NavigationState = {}) => {
             break;
         case 'savingsDetails':
             if (recordId) renderSavingsDetailsView(viewContainers.savingsDetails, navigateTo, recordId);
-            break;
-        case 'gemini':
-            renderGeminiView(viewContainers.gemini, navigateTo, rerenderStats);
             break;
     }
     manageViews(view.replace('List', '')); // Adjust for simple view IDs
@@ -216,7 +203,6 @@ if (root && mainAppTitle && statsPanel) {
     createViewContainer('incomeDetails');
     createViewContainer('expenseDetails');
     createViewContainer('savingsDetails');
-    createViewContainer('gemini');
 
     // Initial render
     navigateTo('dashboard');

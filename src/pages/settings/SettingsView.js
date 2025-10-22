@@ -1,17 +1,12 @@
-
-
 import { createSimpleCard } from '../../components/common.js';
 import { appState, saveState } from '../../state/store.js';
 import { showToast } from '../../components/Toast.js';
-import { UserProfile, Salary, RecurrenceRule, IncomeRecord } from '../../types/index.js';
 import { formatCurrency, parseCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
 import { formatRecurrence } from '../../utils/helpers.js';
 
-type NavigateFunction = (view: 'statistics' | 'settings') => void;
+let salariesListContainer = null;
 
-let salariesListContainer: HTMLElement | null = null;
-
-const createFormField = (labelText: string, inputType: string, inputId: string, name: string, placeholder = '') => {
+const createFormField = (labelText, inputType, inputId, name, placeholder = '') => {
     const group = document.createElement('div');
     group.className = 'form-group';
     const label = document.createElement('label');
@@ -53,11 +48,11 @@ const renderSalariesList = () => {
 
     salaries.forEach(salary => {
         const card = createSalaryCard(salary);
-        salariesListContainer!.appendChild(card);
+        salariesListContainer.appendChild(card);
     });
 };
 
-const deleteSalary = (salaryId: string) => {
+const deleteSalary = (salaryId) => {
     if (confirm('¿Estás seguro de que quieres borrar este salario?')) {
         appState.userProfile.salaries = (appState.userProfile.salaries || []).filter(s => s.id !== salaryId);
         // Also delete the corresponding income record
@@ -69,7 +64,7 @@ const deleteSalary = (salaryId: string) => {
     }
 };
 
-const openSalaryModal = (salaryId?: string) => {
+const openSalaryModal = (salaryId) => {
     const isEditMode = !!salaryId;
     const salaryToEdit = isEditMode ? appState.userProfile.salaries?.find(s => s.id === salaryId) : null;
 
@@ -105,7 +100,7 @@ const openSalaryModal = (salaryId?: string) => {
     radioContainer.className = 'radio-group-container';
     const detailsContainer = document.createElement('div');
     detailsContainer.className = 'frequency-details';
-    const frequencies: RecurrenceRule['type'][] = ['Diario', 'Semanal', 'Quincenal', 'Mensual'];
+    const frequencies = ['Diario', 'Semanal', 'Quincenal', 'Mensual'];
     frequencies.forEach(freq => {
         const option = document.createElement('div');
         option.className = 'radio-option';
@@ -122,7 +117,7 @@ const openSalaryModal = (salaryId?: string) => {
         radioContainer.appendChild(option);
     });
     radioContainer.onchange = (e) => {
-        const target = e.target as HTMLInputElement;
+        const target = e.target;
         detailsContainer.innerHTML = '';
         if (target.value === 'Semanal') {
             const weekSelect = document.createElement('select');
@@ -140,7 +135,7 @@ const openSalaryModal = (salaryId?: string) => {
             const numDays = target.value === 'Quincenal' ? 2 : 1;
             for (let i = 1; i <= numDays; i++) {
                 const dayGroup = createFormField(`Día ${i}`, 'number', `dayOfMonth${i}`, 'daysOfMonth');
-                const input = dayGroup.querySelector('input')!;
+                const input = dayGroup.querySelector('input');
                 input.min = '1';
                 input.max = '31';
                 detailsContainer.appendChild(dayGroup);
@@ -168,23 +163,23 @@ const openSalaryModal = (salaryId?: string) => {
     saveButton.textContent = 'Guardar';
     saveButton.onclick = () => {
         const formData = new FormData(form);
-        const name = formData.get('name') as string;
-        const amountStr = formData.get('amount') as string;
-        const frequencyType = formData.get('salary-frequency') as RecurrenceRule['type'];
+        const name = formData.get('name');
+        const amountStr = formData.get('amount');
+        const frequencyType = formData.get('salary-frequency');
 
         if (!name || !amountStr || !frequencyType) {
             alert('Por favor, complete todos los campos.');
             return;
         }
 
-        const recurrence: RecurrenceRule = { type: frequencyType };
+        const recurrence = { type: frequencyType };
         if (frequencyType === 'Semanal') {
-            recurrence.dayOfWeek = formData.get('dayOfWeek') as string;
+            recurrence.dayOfWeek = formData.get('dayOfWeek');
         } else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
-            recurrence.daysOfMonth = (formData.getAll('daysOfMonth') as string[]).map(d => parseInt(d, 10)).filter(d => d > 0);
+            recurrence.daysOfMonth = (formData.getAll('daysOfMonth')).map(d => parseInt(d, 10)).filter(d => d > 0);
         }
 
-        const newSalary: Salary = {
+        const newSalary = {
             id: salaryId || `sal-${Date.now()}`,
             name,
             amount: parseCurrency(amountStr),
@@ -214,7 +209,7 @@ const openSalaryModal = (salaryId?: string) => {
             correspondingIncome.recurrence = newSalary.recurrence;
         } else {
             // Create new income record
-            const newIncomeRecord: IncomeRecord = {
+            const newIncomeRecord = {
                 id: `inc-sal-${newSalary.id}`,
                 type: 'Recurrente',
                 name: newSalary.name,
@@ -251,25 +246,25 @@ const openSalaryModal = (salaryId?: string) => {
 
     // Pre-fill form if editing, otherwise set a default
     if (isEditMode && salaryToEdit) {
-        (form.querySelector('[name="name"]') as HTMLInputElement).value = salaryToEdit.name;
-        (form.querySelector('[name="amount"]') as HTMLInputElement).value = formatCurrency(salaryToEdit.amount);
-        const freqRadio = form.querySelector(`input[name="salary-frequency"][value="${salaryToEdit.recurrence.type}"]`) as HTMLInputElement;
+        form.querySelector('[name="name"]').value = salaryToEdit.name;
+        form.querySelector('[name="amount"]').value = formatCurrency(salaryToEdit.amount);
+        const freqRadio = form.querySelector(`input[name="salary-frequency"][value="${salaryToEdit.recurrence.type}"]`);
         if (freqRadio) {
             freqRadio.checked = true;
             freqRadio.dispatchEvent(new Event('change', { bubbles: true }));
             const rec = salaryToEdit.recurrence;
             if (rec.type === 'Semanal' && rec.dayOfWeek) {
-                (detailsContainer.querySelector('select') as HTMLSelectElement).value = rec.dayOfWeek;
+                detailsContainer.querySelector('select').value = rec.dayOfWeek;
             } else if ((rec.type === 'Quincenal' || rec.type === 'Mensual') && rec.daysOfMonth) {
                 const inputs = detailsContainer.querySelectorAll('input[name="daysOfMonth"]');
                 inputs.forEach((input, index) => {
-                    (input as HTMLInputElement).value = String(rec.daysOfMonth![index] || '');
+                    input.value = String(rec.daysOfMonth[index] || '');
                 });
             }
         }
     } else {
         // Set a default for new entries
-        const defaultFrequencyRadio = form.querySelector('input[name="salary-frequency"][value="Mensual"]') as HTMLInputElement;
+        const defaultFrequencyRadio = form.querySelector('input[name="salary-frequency"][value="Mensual"]');
         if (defaultFrequencyRadio) {
             defaultFrequencyRadio.checked = true;
             defaultFrequencyRadio.dispatchEvent(new Event('change', { bubbles: true }));
@@ -277,7 +272,7 @@ const openSalaryModal = (salaryId?: string) => {
     }
 };
 
-const createSalaryCard = (salary: Salary) => {
+const createSalaryCard = (salary) => {
     const card = document.createElement('div');
     card.className = 'income-record-card'; // Reuse style
 
@@ -330,7 +325,7 @@ const createSalaryCard = (salary: Salary) => {
     return card;
 };
 
-export const renderSettingsView = (container: HTMLElement, navigate: NavigateFunction) => {
+export const renderSettingsView = (container, navigate) => {
     container.innerHTML = '';
 
     const titleContainer = document.createElement('div');
@@ -365,8 +360,8 @@ export const renderSettingsView = (container: HTMLElement, navigate: NavigateFun
     saveProfileButton.style.width = '100%';
     saveProfileButton.style.marginTop = '20px';
     saveProfileButton.onclick = () => {
-        appState.userProfile.firstName = (profileForm.querySelector('#user-firstname') as HTMLInputElement).value;
-        appState.userProfile.lastName = (profileForm.querySelector('#user-lastname') as HTMLInputElement).value;
+        appState.userProfile.firstName = profileForm.querySelector('#user-firstname').value;
+        appState.userProfile.lastName = profileForm.querySelector('#user-lastname').value;
         saveState(appState);
         showToast('Perfil guardado con éxito');
     };
@@ -400,7 +395,7 @@ export const renderSettingsView = (container: HTMLElement, navigate: NavigateFun
     frequencySelect.id = 'user-sync-frequency';
     frequencySelect.name = 'syncFrequency';
     frequencySelect.className = 'form-input';
-    const frequencies: UserProfile['cloudSyncFrequency'][] = ['Nunca', 'Cada 6 horas', 'Cada 24 horas', 'Cada mes'];
+    const frequencies = ['Nunca', 'Cada 6 horas', 'Cada 24 horas', 'Cada mes'];
     frequencies.forEach(freq => {
         const option = document.createElement('option');
         option.value = freq || 'Nunca';
@@ -416,8 +411,8 @@ export const renderSettingsView = (container: HTMLElement, navigate: NavigateFun
     saveSyncButton.style.width = '100%';
     saveSyncButton.style.marginTop = '20px';
     saveSyncButton.onclick = () => {
-        const email = (syncForm.querySelector('#user-sync-email') as HTMLInputElement).value;
-        const frequency = (syncForm.querySelector('#user-sync-frequency') as HTMLSelectElement).value as UserProfile['cloudSyncFrequency'];
+        const email = syncForm.querySelector('#user-sync-email').value;
+        const frequency = syncForm.querySelector('#user-sync-frequency').value;
         appState.userProfile.cloudSyncEmail = email;
         appState.userProfile.cloudSyncFrequency = frequency;
         saveState(appState);
@@ -467,9 +462,9 @@ export const renderSettingsView = (container: HTMLElement, navigate: NavigateFun
     // Load existing profile data
     const currentUserProfile = appState.userProfile;
     if (currentUserProfile) {
-        (firstNameField.querySelector('input') as HTMLInputElement).value = currentUserProfile.firstName || '';
-        (lastNameField.querySelector('input') as HTMLInputElement).value = currentUserProfile.lastName || '';
-        (emailField.querySelector('input') as HTMLInputElement).value = currentUserProfile.cloudSyncEmail || '';
+        firstNameField.querySelector('input').value = currentUserProfile.firstName || '';
+        lastNameField.querySelector('input').value = currentUserProfile.lastName || '';
+        emailField.querySelector('input').value = currentUserProfile.cloudSyncEmail || '';
         frequencySelect.value = currentUserProfile.cloudSyncFrequency || 'Nunca';
     }
     

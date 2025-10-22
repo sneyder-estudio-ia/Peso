@@ -334,10 +334,6 @@ export const renderDashboardView = (container, navigate) => {
     savingsCard.style.cursor = 'pointer';
     savingsCard.onclick = () => navigate('savingsList');
 
-    const geminiCard = createSimpleCard('Asistente Gemini');
-    geminiCard.style.cursor = 'pointer';
-    geminiCard.onclick = () => navigate('gemini');
-    
     // --- New List Filter Card ---
     let activeFilter = 'all';
 
@@ -436,7 +432,6 @@ export const renderDashboardView = (container, navigate) => {
     container.appendChild(incomeCard);
     container.appendChild(expenseCard);
     container.appendChild(savingsCard);
-    container.appendChild(geminiCard);
     container.appendChild(listFilterCard);
     container.appendChild(dashboardListContainer);
     

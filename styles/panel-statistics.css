@@ -418,38 +418,3 @@
     font-size: 0.9rem;
     font-style: italic;
 }
-
-/* Gemini Analysis Section in Modal */
-.calendar-modal-gemini-section {
-    margin-top: 25px;
-    padding-top: 15px;
-    border-top: 1px solid #30363d;
-}
-
-.gemini-section-title {
-    color: #a371f7; /* Purple to stand out */
-}
-
-.loading-gemini-analysis {
-    color: #8b949e;
-    font-style: italic;
-}
-
-.gemini-analysis-content {
-    font-size: 0.9rem;
-    line-height: 1.6;
-    color: #c9d1d9;
-}
-
-.gemini-analysis-content p {
-    margin: 0 0 10px 0;
-}
-
-.gemini-analysis-content ul {
-    padding-left: 20px;
-    margin: 0;
-}
-
-.gemini-analysis-content strong {
-    color: #d29922; /* Gold color for emphasis */
-}

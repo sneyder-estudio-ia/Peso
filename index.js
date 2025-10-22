@@ -4,7 +4,7 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * You may a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -27,7 +27,6 @@ import { renderExpenseDetailsView } from './src/pages/details/ExpenseDetailsView
 import { renderSavingsDetailsView } from './src/pages/details/SavingsDetailsView.js';
 import { renderStatisticsView } from './src/pages/statistics/StatisticsView.js';
 import { renderSettingsView } from './src/pages/settings/SettingsView.js';
-import { renderGeminiView } from './src/pages/gemini/GeminiView.js';
 
 const root = document.getElementById('root');
 const mainAppTitle = document.getElementById('app-title-main');
@@ -85,12 +84,6 @@ const navigateToStatsPanel = (view) => {
 };
 
 const navigateTo = (view, state = {}) => {
-    if (view === 'gemini') {
-        document.body.classList.add('gemini-fullscreen');
-    } else {
-        document.body.classList.remove('gemini-fullscreen');
-    }
-    
     currentView = view;
     currentState = state;
     const { recordType, recordId } = state;
@@ -129,9 +122,6 @@ const navigateTo = (view, state = {}) => {
             break;
         case 'savingsDetails':
             if (recordId) renderSavingsDetailsView(viewContainers.savingsDetails, navigateTo, recordId);
-            break;
-        case 'gemini':
-            renderGeminiView(viewContainers.gemini, navigateTo, rerenderStats);
             break;
     }
     manageViews(view.replace('List', '')); // Adjust for simple view IDs
@@ -194,7 +184,6 @@ if (root && mainAppTitle && statsPanel) {
     createViewContainer('incomeDetails');
     createViewContainer('expenseDetails');
     createViewContainer('savingsDetails');
-    createViewContainer('gemini');
 
     // Initial render
     navigateTo('dashboard');
