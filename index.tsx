@@ -4,7 +4,6 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
@@ -187,12 +186,49 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
     const periods = [];
-    
-    const salaryPayDays = appState.userProfile.salaries
-        ?.flatMap(s => s.recurrence.daysOfMonth || [])
-        .filter(day => day > 0 && day <= daysInMonth) || [];
+    const payDaysInMonth: number[] = [];
 
-    const uniquePayDays = [...new Set(salaryPayDays)].sort((a, b) => a - b);
+    const salaries = appState.userProfile.salaries || [];
+
+    if (salaries.length > 0) {
+        salaries.forEach(salary => {
+            const { recurrence } = salary;
+            if (!recurrence) return;
+
+            switch (recurrence.type) {
+                case 'Semanal':
+                    if (recurrence.dayOfWeek) {
+                        const targetDayIndex = dayNameToIndex[recurrence.dayOfWeek];
+                        if (targetDayIndex !== undefined) {
+                            for (let day = 1; day <= daysInMonth; day++) {
+                                const date = new Date(currentYear, currentMonth, day);
+                                if (date.getDay() === targetDayIndex) {
+                                    payDaysInMonth.push(day);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                case 'Quincenal':
+                case 'Mensual':
+                    if (recurrence.daysOfMonth) {
+                        // Ensure days are valid for the current month.
+                        recurrence.daysOfMonth.forEach(day => {
+                            if (day > 0 && day <= daysInMonth) {
+                                payDaysInMonth.push(day);
+                            }
+                        });
+                    }
+                    break;
+                // 'Diario' does not create period boundaries.
+                case 'Diario':
+                default:
+                    break;
+            }
+        });
+    }
+
+    const uniquePayDays = [...new Set(payDaysInMonth)].sort((a, b) => a - b);
 
     if (uniquePayDays.length > 0) {
         // Build periods around configured salary dates
@@ -201,9 +237,9 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
 
         for (let i = 0; i < uniqueSplitPoints.length - 1; i++) {
             const startDay = uniqueSplitPoints[i];
-            const endDay = uniqueSplitPoints[i+1] - 1;
+            const endDay = uniqueSplitPoints[i + 1] - 1;
 
-            if (startDay > endDay) continue;
+            if (startDay > endDay) continue; // Safeguard for consecutive paydays resulting in invalid periods
 
             const p_start = new Date(currentYear, currentMonth, startDay);
             const p_end = new Date(currentYear, currentMonth, endDay);
@@ -218,7 +254,7 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
             });
         }
     } else {
-        // Fallback: If no salaries are set, show a single summary for the entire current month.
+        // Fallback: If no salaries are set, or only daily salaries, show a single summary for the entire current month.
         const p_start = new Date(currentYear, currentMonth, 1);
         const p_end = new Date(currentYear, currentMonth, daysInMonth);
         const p_income = calculateValueInDateRange(appState.incomeRecords, p_start, p_end);
@@ -244,7 +280,7 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
                     </div>
                 </div>
             `).join('')}
-             ${uniquePayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios para un resumen detallado por períodos.</p>' : ''}
+             ${uniquePayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios (semanal, quincenal, mensual) para un resumen detallado por períodos.</p>' : ''}
         </div>
     `;
 };
