@@ -4,6 +4,7 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
+ * You may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
@@ -179,59 +180,61 @@ const calculateValueInDateRange = (
 
 
 const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) => {
-    const allRecurringRecords = [...appState.incomeRecords, ...appState.expenseRecords]
-        .filter(r => r.type === 'Recurrente' && r.recurrence);
-
-    let dominantFrequency = 'Mensual';
-    if (allRecurringRecords.some(r => r.recurrence!.type === 'Diario')) {
-        dominantFrequency = 'Diario';
-    } else if (allRecurringRecords.some(r => r.recurrence!.type === 'Semanal')) {
-        dominantFrequency = 'Semanal';
-    } else if (allRecurringRecords.some(r => r.recurrence!.type === 'Quincenal')) {
-        dominantFrequency = 'Quincenal';
-    }
-    
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
     const monthName = now.toLocaleString('es-ES', { month: 'long' });
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
     const periods = [];
     
-    if (dominantFrequency === 'Quincenal' || dominantFrequency === 'Mensual') {
-        const midOfMonth = new Date(currentYear, currentMonth, 15);
-        const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    const salaryPayDays = appState.userProfile.salaries
+        ?.flatMap(s => s.recurrence.daysOfMonth || [])
+        .filter(day => day > 0 && day <= daysInMonth) || [];
 
-        // Period 1
-        const p1_start = new Date(currentYear, currentMonth, 1);
-        const p1_end = midOfMonth;
-        const p1_income = calculateValueInDateRange(appState.incomeRecords, p1_start, p1_end);
-        const p1_expense = calculateValueInDateRange(appState.expenseRecords, p1_start, p1_end);
-        periods.push({
-            label: `1 - 15 de ${monthName}`,
-            income: p1_income,
-            remaining: p1_income - p1_expense
-        });
+    const uniquePayDays = [...new Set(salaryPayDays)].sort((a, b) => a - b);
 
-        // Period 2
-        const p2_start = new Date(currentYear, currentMonth, 16);
-        const p2_end = endOfMonth;
-        const p2_income = calculateValueInDateRange(appState.incomeRecords, p2_start, p2_end);
-        const p2_expense = calculateValueInDateRange(appState.expenseRecords, p2_start, p2_end);
-         periods.push({
-            label: `16 - ${endOfMonth.getDate()} de ${monthName}`,
-            income: p2_income,
-            remaining: p2_income - p2_expense
-        });
+    if (uniquePayDays.length > 0) {
+        // Build periods around configured salary dates
+        const splitPoints = [1, ...uniquePayDays, daysInMonth + 1];
+        const uniqueSplitPoints = [...new Set(splitPoints)].sort((a, b) => a - b);
+
+        for (let i = 0; i < uniqueSplitPoints.length - 1; i++) {
+            const startDay = uniqueSplitPoints[i];
+            const endDay = uniqueSplitPoints[i+1] - 1;
+
+            if (startDay > endDay) continue;
+
+            const p_start = new Date(currentYear, currentMonth, startDay);
+            const p_end = new Date(currentYear, currentMonth, endDay);
+            
+            const p_income = calculateValueInDateRange(appState.incomeRecords, p_start, p_end);
+            const p_expense = calculateValueInDateRange(appState.expenseRecords, p_start, p_end);
+            
+            periods.push({
+                label: startDay === endDay ? `${startDay} de ${monthName}` : `${startDay} - ${endDay} de ${monthName}`,
+                income: p_income,
+                remaining: p_income - p_expense
+            });
+        }
     } else {
-        // Handle other frequencies as one period if needed, for now just show for monthly/bi-weekly
+        // Fallback: If no salaries are set, show a single summary for the entire current month.
+        const p_start = new Date(currentYear, currentMonth, 1);
+        const p_end = new Date(currentYear, currentMonth, daysInMonth);
+        const p_income = calculateValueInDateRange(appState.incomeRecords, p_start, p_end);
+        const p_expense = calculateValueInDateRange(appState.expenseRecords, p_start, p_end);
+        
+        periods.push({
+            label: `${monthName} ${currentYear}`,
+            income: p_income,
+            remaining: p_income - p_expense
+        });
     }
-
 
     panel.innerHTML = `
         <h2 class="nav-title">Filtro</h2>
         <div class="filter-card">
-            <h3 class="filter-card-title">Resumen ${dominantFrequency}</h3>
+            <h3 class="filter-card-title">Resumen del Mes</h3>
             ${periods.map(p => `
                 <div class="period-section">
                     <div class="period-dates">${p.label}</div>
@@ -241,7 +244,7 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
                     </div>
                 </div>
             `).join('')}
-             ${periods.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Resumen disponible para frecuencia Quincenal o Mensual.</p>' : ''}
+             ${uniquePayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios para un resumen detallado por períodos.</p>' : ''}
         </div>
     `;
 };
