@@ -311,6 +311,15 @@
     color: white;
 }
 
+.calendar-day.has-records {
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.calendar-day.has-records:not(.current-day):hover {
+    background-color: #30363d;
+}
+
 .dots-container {
     display: flex;
     gap: 3px;
@@ -336,4 +345,111 @@
 
 .savings-dot {
     background-color: #388bfd;
+}
+
+/* --- Calendar Day Modal Styles --- */
+.calendar-day-modal-content {
+    text-align: left;
+    max-height: 85vh;
+    overflow-y: auto;
+    max-width: 400px;
+}
+
+.calendar-modal-section {
+    margin-top: 20px;
+}
+
+.calendar-modal-section:first-of-type {
+    margin-top: 10px;
+}
+
+.calendar-modal-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #c9d1d9;
+    margin: 0 0 10px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #30363d;
+}
+
+.calendar-modal-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.calendar-modal-list-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.record-main-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.record-name {
+    font-weight: 500;
+    color: #c9d1d9;
+    font-size: 0.95rem;
+}
+
+.record-sub-info {
+    font-size: 0.8rem;
+    color: #8b949e;
+}
+
+.record-amount {
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.record-amount.income { color: #3fb950; }
+.record-amount.expense { color: #f85149; }
+.record-amount.savings { color: #388bfd; }
+
+.calendar-modal-empty-item {
+    color: #8b949e;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+/* Gemini Analysis Section in Modal */
+.calendar-modal-gemini-section {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #30363d;
+}
+
+.gemini-section-title {
+    color: #a371f7; /* Purple to stand out */
+}
+
+.loading-gemini-analysis {
+    color: #8b949e;
+    font-style: italic;
+}
+
+.gemini-analysis-content {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #c9d1d9;
+}
+
+.gemini-analysis-content p {
+    margin: 0 0 10px 0;
+}
+
+.gemini-analysis-content ul {
+    padding-left: 20px;
+    margin: 0;
+}
+
+.gemini-analysis-content strong {
+    color: #d29922; /* Gold color for emphasis */
 }

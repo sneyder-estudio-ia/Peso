@@ -1,8 +1,209 @@
 import { appState } from '../state/store.js';
+import { formatCurrency } from '../utils/currency.js';
+import { GoogleGenAI } from 'https://esm.run/@google/genai';
+import { marked } from 'https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js';
 
 // Helper to map Spanish day names to JS getDay() indices (0=Sun, 1=Mon, etc.)
 const dayNameToIndex = {
     'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+};
+
+// Helper function to get all records (unique and recurring) for a specific date
+const getRecordsForDate = (dateString) => {
+    const records = {
+        incomes: [],
+        expenses: [],
+        savings: [],
+    };
+
+    const checkDate = new Date(dateString + 'T12:00:00'); // Use noon to avoid timezone shifts
+    const dayOfMonth = checkDate.getDate();
+    const dayOfWeek = checkDate.getDay();
+
+    const isRecurringOnDate = (record) => {
+        if (!record.recurrence) return false;
+
+        const expenseRecord = record;
+        if ('isInfinite' in expenseRecord && !expenseRecord.isInfinite && expenseRecord.durationInMonths && (expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths) {
+            return false;
+        }
+
+        switch (record.recurrence.type) {
+            case 'Diario':
+                return true;
+            case 'Semanal':
+                const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek];
+                return dayOfWeek === targetDayIndex;
+            case 'Quincenal':
+            case 'Mensual':
+                return record.recurrence.daysOfMonth?.includes(dayOfMonth) ?? false;
+            default:
+                return false;
+        }
+    };
+
+    records.incomes.push(...appState.incomeRecords.filter(r => (r.type === 'Único' && r.date === dateString) || (r.type === 'Recurrente' && isRecurringOnDate(r))));
+    records.expenses.push(...appState.expenseRecords.filter(r => (r.type === 'Único' && r.date === dateString) || (r.type === 'Recurrente' && isRecurringOnDate(r))));
+    records.savings.push(...appState.savingRecords.filter(r => (r.type === 'Único' && r.date === dateString) || (r.type === 'Recurrente' && isRecurringOnDate(r))));
+    
+    return records;
+};
+
+// New function to call Gemini API and get analysis for the day
+const getGeminiAnalysisForDay = async (dailyRecords, dateString) => {
+    const apiKey = appState.userProfile.geminiApiKey;
+    if (!apiKey) {
+        return ''; // Should not happen if called correctly, but as a safeguard.
+    }
+
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+        const financialContext = JSON.stringify(dailyRecords, null, 2);
+        
+        const prompt = `
+            Eres un asistente financiero experto para la app "Peso".
+            Aquí tienes los datos de ingresos, gastos y ahorros para la fecha ${dateString}:
+            ${financialContext}
+
+            Por favor, proporciona un análisis breve y conciso de la actividad financiera de este día.
+            - Destaca las transacciones más significativas.
+            - Ofrece observaciones o ideas basadas **únicamente** en los datos de este día.
+            - Sé amigable, claro y utiliza formato Markdown para mejorar la legibilidad (listas, negritas).
+            - No menciones el JSON. Actúa como si tuvieras acceso directo a los datos.
+            - Responde siempre en español.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+
+        return response.text;
+    } catch (error) {
+        console.error("Error calling Gemini API:", error);
+        return "Lo siento, no pude obtener el análisis. Verifica tu API Key o inténtalo más tarde.";
+    }
+};
+
+// Creates and displays the modal with details for a given day
+const openDayDetailsModal = async (dateString) => {
+    const dailyRecords = getRecordsForDate(dateString);
+
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay calendar-day-modal-overlay';
+
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content calendar-day-modal-content';
+    modalContent.onclick = e => e.stopPropagation();
+
+    const [year, month, day] = dateString.split('-');
+    const modalTitle = document.createElement('h3');
+    modalTitle.className = 'modal-title';
+    modalTitle.textContent = `Registros del ${day}/${month}/${year}`;
+    modalContent.appendChild(modalTitle);
+
+    const createRecordListSection = (
+        title, 
+        records, 
+        type
+    ) => {
+        const section = document.createElement('div');
+        section.className = 'calendar-modal-section';
+        
+        const sectionTitle = document.createElement('h4');
+        sectionTitle.className = 'calendar-modal-section-title';
+        sectionTitle.textContent = title;
+        section.appendChild(sectionTitle);
+
+        const list = document.createElement('ul');
+        list.className = 'calendar-modal-list';
+        
+        if (records.length === 0) {
+            const emptyItem = document.createElement('li');
+            emptyItem.className = 'calendar-modal-empty-item';
+            emptyItem.textContent = 'No hay registros este día.';
+            list.appendChild(emptyItem);
+        } else {
+            records.forEach(record => {
+                const item = document.createElement('li');
+                item.className = 'calendar-modal-list-item';
+                
+                const mainInfo = document.createElement('div');
+                mainInfo.className = 'record-main-info';
+                
+                const name = document.createElement('span');
+                name.className = 'record-name';
+                name.textContent = record.name;
+                
+                const amount = document.createElement('span');
+                amount.className = `record-amount ${type}`;
+                amount.textContent = `${type === 'expense' ? '-' : ''}$${formatCurrency(record.amount)}`;
+                
+                mainInfo.appendChild(name);
+                mainInfo.appendChild(amount);
+
+                const subInfo = document.createElement('div');
+                subInfo.className = 'record-sub-info';
+                let subText = record.type === 'Recurrente' ? 'Recurrente' : 'Único';
+                if (type === 'income') subText += ` • Fuente: ${record.source || 'N/A'}`;
+                if (type === 'expense') subText += ` • Cat: ${record.category || 'General'}`;
+                if (type === 'savings' && record.goalAmount) subText += ` • Meta: $${formatCurrency(record.goalAmount)}`;
+
+                subInfo.textContent = subText;
+                
+                item.appendChild(mainInfo);
+                item.appendChild(subInfo);
+                list.appendChild(item);
+            });
+        }
+        
+        section.appendChild(list);
+        return section;
+    };
+
+    modalContent.appendChild(createRecordListSection('Ingresos', dailyRecords.incomes, 'income'));
+    modalContent.appendChild(createRecordListSection('Gastos', dailyRecords.expenses, 'expense'));
+    modalContent.appendChild(createRecordListSection('Ahorros', dailyRecords.savings, 'savings'));
+
+    // --- Gemini Analysis Section ---
+    if (appState.userProfile.geminiApiKey) {
+        const geminiSection = document.createElement('div');
+        geminiSection.className = 'calendar-modal-section calendar-modal-gemini-section';
+
+        const geminiTitle = document.createElement('h4');
+        geminiTitle.className = 'calendar-modal-section-title gemini-section-title';
+        geminiTitle.innerHTML = 'Análisis de Gemini 🔮';
+        geminiSection.appendChild(geminiTitle);
+
+        const geminiContent = document.createElement('div');
+        geminiContent.className = 'gemini-analysis-content';
+        geminiContent.innerHTML = '<div class="loading-gemini-analysis">Analizando...</div>';
+        geminiSection.appendChild(geminiContent);
+        
+        modalContent.appendChild(geminiSection);
+
+        // Fetch analysis asynchronously
+        getGeminiAnalysisForDay(dailyRecords, dateString).then(analysisText => {
+            try {
+                geminiContent.innerHTML = marked.parse(analysisText);
+            } catch (e) {
+                console.error('Markdown parsing error:', e);
+                geminiContent.textContent = analysisText;
+            }
+        });
+    }
+
+
+    const closeModal = () => {
+        if (document.body.contains(modalOverlay)) {
+            document.body.removeChild(modalOverlay);
+        }
+    };
+    modalOverlay.onclick = closeModal;
+
+    modalOverlay.appendChild(modalContent);
+    document.body.appendChild(modalOverlay);
+    modalOverlay.style.display = 'flex';
 };
 
 export const createCalendar = (date, onDateChange) => {
@@ -173,6 +374,9 @@ export const createCalendar = (date, onDateChange) => {
                     dotsContainer.appendChild(savingsDot);
                 }
                 dayCell.appendChild(dotsContainer);
+
+                dayCell.classList.add('has-records');
+                dayCell.onclick = () => openDayDetailsModal(dateString);
             }
 
             grid.appendChild(dayCell);
