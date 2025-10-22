@@ -72,7 +72,7 @@ export const createIncomeRecordCard = (record, navigate, rerenderCallback) => {
 
     const amount = document.createElement('div');
     amount.className = 'income-record-amount';
-    amount.textContent = `$ ${formatCurrency(record.amount)}`;
+    amount.textContent = formatCurrency(record.amount, { includeSymbol: true });
 
     if (record.salaryId) {
         // It's a salary, managed from settings. Don't show edit/delete buttons.
@@ -143,7 +143,7 @@ export const createExpenseRecordCard = (record, navigate, rerenderCallback) => {
 
     const amount = document.createElement('div');
     amount.className = 'income-record-amount expense';
-    amount.textContent = `$ ${formatCurrency(record.amount)}`;
+    amount.textContent = formatCurrency(record.amount, { includeSymbol: true });
 
     const editButton = document.createElement('button');
     editButton.className = 'btn-edit';
@@ -206,7 +206,7 @@ export const createSavingRecordCard = (record, navigate, rerenderCallback) => {
 
     const amount = document.createElement('div');
     amount.className = 'income-record-amount savings';
-    amount.textContent = `$ ${formatCurrency(record.amount)}`;
+    amount.textContent = formatCurrency(record.amount, { includeSymbol: true });
 
     const editButton = document.createElement('button');
     editButton.className = 'btn-edit';

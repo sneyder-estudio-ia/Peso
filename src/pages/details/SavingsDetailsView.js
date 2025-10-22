@@ -71,9 +71,9 @@ export const renderSavingsDetailsView = (container, navigate, recordId) => {
     
     detailsContainer.appendChild(createDetailItem('Nombre:', record.name));
     detailsContainer.appendChild(createDetailItem('Tipo:', record.type));
-    detailsContainer.appendChild(createDetailItem('Monto Ahorrado:', `$ ${formatCurrency(record.amount)}`));
+    detailsContainer.appendChild(createDetailItem('Monto Ahorrado:', formatCurrency(record.amount, { includeSymbol: true })));
     if (record.goalAmount && record.goalAmount > 0) {
-        detailsContainer.appendChild(createDetailItem('Meta de Ahorro:', `$ ${formatCurrency(record.goalAmount)}`));
+        detailsContainer.appendChild(createDetailItem('Meta de Ahorro:', formatCurrency(record.goalAmount, { includeSymbol: true })));
     }
     if (record.date) {
         detailsContainer.appendChild(createDetailItem('Fecha:', record.date));

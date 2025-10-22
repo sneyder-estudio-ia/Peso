@@ -8,7 +8,7 @@ const categoryColors = [
     '#388bfd', '#238636', '#d29922', '#f85149', '#a371f7', '#1f6feb', '#da3633', '#e36209'
 ];
 
-export const renderStatisticsView = (container: HTMLElement, navigate: (view: 'statistics' | 'settings') => void) => {
+export const renderStatisticsView = (container, navigate) => {
     container.innerHTML = ''; // Clear previous content
 
     const titleContainer = document.createElement('div');
@@ -33,7 +33,7 @@ export const renderStatisticsView = (container: HTMLElement, navigate: (view: 's
 
     let currentDate = new Date();
     
-    const rerenderCalendar = (newDate: Date) => {
+    const rerenderCalendar = (newDate) => {
         currentDate = newDate;
         calendarSection.innerHTML = '';
         const calendar = createCalendar(currentDate, rerenderCalendar);
@@ -73,7 +73,7 @@ export const renderStatisticsView = (container: HTMLElement, navigate: (view: 's
             const category = record.category || 'General';
             acc[category] = (acc[category] || 0) + record.amount;
             return acc;
-        }, {} as { [key: string]: number });
+        }, {});
 
         const chartData = Object.entries(expenseByCategory)
             .map(([label, value], index) => ({

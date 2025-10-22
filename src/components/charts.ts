@@ -76,7 +76,7 @@ export const createExpenseBreakdownChart = (data: ChartData[], total: number, al
         
         const value = document.createElement('span');
         value.className = 'legend-value';
-        value.textContent = `($ ${formatCurrency(item.value)})`;
+        value.textContent = `(${formatCurrency(item.value, { includeSymbol: true })})`;
 
         li.appendChild(colorBox);
         li.appendChild(label);
@@ -135,7 +135,7 @@ export const createExpenseBreakdownChart = (data: ChartData[], total: number, al
 
                     const amountSpan = document.createElement('span');
                     amountSpan.className = 'details-item-amount';
-                    amountSpan.textContent = `-$ ${formatCurrency(exp.amount)}`;
+                    amountSpan.textContent = `-${formatCurrency(exp.amount, { includeSymbol: true })}`;
 
                     itemEl.appendChild(nameSpan);
                     itemEl.appendChild(dateSpan);

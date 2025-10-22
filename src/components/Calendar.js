@@ -99,7 +99,7 @@ const openDayDetailsModal = async (dateString) => {
                 
                 const amount = document.createElement('span');
                 amount.className = `record-amount ${type}`;
-                amount.textContent = `${type === 'expense' ? '-' : ''}$${formatCurrency(record.amount)}`;
+                amount.textContent = `${type === 'expense' ? '-' : ''}${formatCurrency(record.amount, { includeSymbol: true })}`;
                 
                 mainInfo.appendChild(name);
                 mainInfo.appendChild(amount);
@@ -109,7 +109,7 @@ const openDayDetailsModal = async (dateString) => {
                 let subText = record.type === 'Recurrente' ? 'Recurrente' : 'Único';
                 if (type === 'income') subText += ` • Fuente: ${record.source || 'N/A'}`;
                 if (type === 'expense') subText += ` • Cat: ${record.category || 'General'}`;
-                if (type === 'savings' && record.goalAmount) subText += ` • Meta: $${formatCurrency(record.goalAmount)}`;
+                if (type === 'savings' && record.goalAmount) subText += ` • Meta: ${formatCurrency(record.goalAmount, { includeSymbol: true })}`;
 
                 subInfo.textContent = subText;
                 

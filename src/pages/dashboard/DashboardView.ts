@@ -274,7 +274,7 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     const netIncomeForPeriod = incomeInCurrentPeriod - expenseInCurrentPeriod;
     const incomePrimaryValueEl = document.createElement('div');
     incomePrimaryValueEl.className = `primary-value ${netIncomeForPeriod >= 0 ? 'income' : 'expense'}`; // Green for positive, red for negative
-    incomePrimaryValueEl.textContent = `$ ${formatCurrency(netIncomeForPeriod)}`;
+    incomePrimaryValueEl.textContent = formatCurrency(netIncomeForPeriod, { includeSymbol: true });
     primaryValueWrapper.appendChild(incomePrimaryValueEl);
 
     incomeCard.appendChild(incomeCardTitle);
@@ -297,7 +297,7 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     const remainingValueEl = document.createElement('div');
     // Using 'income-record-amount' for font size/weight and 'savings' for blue color
     remainingValueEl.className = 'income-record-amount savings'; 
-    remainingValueEl.textContent = `$ ${formatCurrency(remainingAmount)}`;
+    remainingValueEl.textContent = formatCurrency(remainingAmount, { includeSymbol: true });
     
     remainingWrapper.appendChild(remainingLabel);
     remainingWrapper.appendChild(remainingValueEl);
@@ -320,7 +320,7 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
 
     const incomeSecondaryValueEl = document.createElement('div');
     incomeSecondaryValueEl.className = 'secondary-value';
-    incomeSecondaryValueEl.textContent = `$ ${formatCurrency(monthlyIncome)}`;
+    incomeSecondaryValueEl.textContent = formatCurrency(monthlyIncome, { includeSymbol: true });
     
     secondaryValueWrapper.appendChild(secondaryLabel);
     secondaryValueWrapper.appendChild(incomeSecondaryValueEl);
@@ -329,11 +329,11 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
 
 
     // --- Use createCard for other cards to keep them standard ---
-    const expenseCard = createCard('Gasto', `$ ${formatCurrency(expenseInCurrentPeriod)}`, 'expense', 'gasto del mes', `$ ${formatCurrency(monthlyExpense)}`);
+    const expenseCard = createCard('Gasto', formatCurrency(expenseInCurrentPeriod, { includeSymbol: true }), 'expense', 'gasto del mes', formatCurrency(monthlyExpense, { includeSymbol: true }));
     expenseCard.style.cursor = 'pointer';
     expenseCard.onclick = () => navigate('expenseList');
 
-    const savingsCard = createCard('Ahorros', `$ ${formatCurrency(totalSavings)}`, 'savings', 'ahorros del mes', `$ ${formatCurrency(totalSavings)}`);
+    const savingsCard = createCard('Ahorros', formatCurrency(totalSavings, { includeSymbol: true }), 'savings', 'ahorros del mes', formatCurrency(totalSavings, { includeSymbol: true }));
     savingsCard.style.cursor = 'pointer';
     savingsCard.onclick = () => navigate('savingsList');
 

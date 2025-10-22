@@ -1,6 +1,6 @@
 import { appState } from '../state/store.js';
 
-const currencySymbols: { [key: string]: string } = {
+const currencySymbols = {
     USD: '$',
     GTQ: 'Q',
     HNL: 'L',
@@ -10,7 +10,7 @@ const currencySymbols: { [key: string]: string } = {
     BZD: 'BZ$',
 };
 
-export const formatCurrency = (value: number | undefined | null, options: { includeSymbol?: boolean } = {}): string => {
+export const formatCurrency = (value, options = {}) => {
     if (value === undefined || value === null || isNaN(value)) {
         value = 0;
     }
@@ -31,7 +31,7 @@ export const formatCurrency = (value: number | undefined | null, options: { incl
     return numberPart;
 };
 
-export const parseCurrency = (value: string | undefined | null): number => {
+export const parseCurrency = (value) => {
     if (!value) return 0;
     // For es-ES locale, '.' is thousand separator and ',' is decimal.
     // We convert it to a standard format for parseFloat ('.' as decimal separator).
@@ -39,8 +39,8 @@ export const parseCurrency = (value: string | undefined | null): number => {
     return parseFloat(sanitized) || 0;
 };
 
-export const handleNumericInputFormatting = (e: Event) => {
-    const input = e.target as HTMLInputElement;
+export const handleNumericInputFormatting = (e) => {
+    const input = e.target;
     const cursorStart = input.selectionStart;
     const originalValue = input.value;
     const originalLength = originalValue.length;

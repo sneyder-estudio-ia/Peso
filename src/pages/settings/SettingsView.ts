@@ -303,7 +303,7 @@ const createSalaryCard = (salary: Salary) => {
 
     const amount = document.createElement('div');
     amount.className = 'income-record-amount income'; // Reuse style
-    amount.textContent = `$ ${formatCurrency(salary.amount)}`;
+    amount.textContent = formatCurrency(salary.amount, { includeSymbol: true });
 
     const editButton = document.createElement('button');
     editButton.className = 'btn-edit';
@@ -392,6 +392,71 @@ export const renderSettingsView = (
     profileCard.appendChild(profileForm);
     profileSection.appendChild(profileCard);
     container.appendChild(profileSection);
+    
+    // --- Currency Section ---
+    const currencySection = document.createElement('div');
+    currencySection.className = 'stats-section';
+    const currencyCard = createSimpleCard('Moneda');
+    const currencyForm = document.createElement('form');
+    currencyForm.className = 'income-form';
+    currencyForm.style.marginTop = '15px';
+    currencyForm.onsubmit = e => e.preventDefault();
+
+    const currencyGroup = document.createElement('div');
+    currencyGroup.className = 'form-group';
+    const currencyLabel = document.createElement('label');
+    currencyLabel.className = 'form-label';
+    currencyLabel.htmlFor = 'user-currency';
+    currencyLabel.textContent = 'Seleccione su moneda';
+    
+    const currencySelect = document.createElement('select');
+    currencySelect.id = 'user-currency';
+    currencySelect.name = 'currency';
+    currencySelect.className = 'form-input';
+
+    const currencies: { [key: string]: string } = {
+        USD: 'Dólar estadounidense (USD)',
+        GTQ: 'Quetzal guatemalteco (GTQ)',
+        HNL: 'Lempira hondureño (HNL)',
+        NIO: 'Córdoba nicaragüense (NIO)',
+        CRC: 'Colón costarricense (CRC)',
+        PAB: 'Balboa panameño (PAB)',
+        BZD: 'Dólar beliceño (BZD)',
+    };
+
+    for (const code in currencies) {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = currencies[code];
+        currencySelect.appendChild(option);
+    }
+    
+    currencyGroup.appendChild(currencyLabel);
+    currencyGroup.appendChild(currencySelect);
+
+    const saveCurrencyButton = document.createElement('button');
+    saveCurrencyButton.textContent = 'Guardar Moneda';
+    saveCurrencyButton.className = 'btn btn-add';
+    saveCurrencyButton.style.width = '100%';
+    saveCurrencyButton.style.marginTop = '20px';
+    saveCurrencyButton.onclick = () => {
+        const selectedCurrency = (currencyForm.querySelector('#user-currency') as HTMLSelectElement).value;
+        appState.userProfile.currency = selectedCurrency;
+        saveState(appState);
+        showToast('Moneda guardada. Actualizando vista...');
+        
+        // Re-render the main dashboard and the stats panel to reflect currency changes
+        setTimeout(() => {
+            mainNavigate('dashboard', {});
+            navigate('settings'); // Re-render settings to show correct selection
+        }, 500);
+    };
+    
+    currencyForm.appendChild(currencyGroup);
+    currencyForm.appendChild(saveCurrencyButton);
+    currencyCard.appendChild(currencyForm);
+    currencySection.appendChild(currencyCard);
+    container.appendChild(currencySection);
 
     // --- Cloud Sync Section ---
     const syncSection = document.createElement('div');
@@ -484,6 +549,7 @@ export const renderSettingsView = (
     if (currentUserProfile) {
         (firstNameField.querySelector('input') as HTMLInputElement).value = currentUserProfile.firstName || '';
         (lastNameField.querySelector('input') as HTMLInputElement).value = currentUserProfile.lastName || '';
+        currencySelect.value = currentUserProfile.currency || 'USD';
         (emailField.querySelector('input') as HTMLInputElement).value = currentUserProfile.cloudSyncEmail || '';
         frequencySelect.value = currentUserProfile.cloudSyncFrequency || 'Nunca';
     }

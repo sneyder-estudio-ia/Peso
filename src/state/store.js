@@ -1,8 +1,6 @@
-import { AppState } from '../types/index.js';
-
 const STORAGE_KEY = 'pesoAppData';
 
-export const saveState = (state: AppState) => {
+export const saveState = (state) => {
     try {
         const serializedState = JSON.stringify(state);
         localStorage.setItem(STORAGE_KEY, serializedState);
@@ -11,7 +9,7 @@ export const saveState = (state: AppState) => {
     }
 };
 
-export const loadState = (): AppState => {
+export const loadState = () => {
     try {
         const serializedState = localStorage.getItem(STORAGE_KEY);
         if (serializedState === null) {
@@ -36,4 +34,4 @@ export const loadState = (): AppState => {
     }
 };
 
-export let appState: AppState = loadState();
+export let appState = loadState();

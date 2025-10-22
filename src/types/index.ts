@@ -59,6 +59,7 @@ export interface UserProfile {
     cloudSyncEmail?: string;
     // FIX: Updated type literals to match values used in the settings UI, fixing type errors.
     cloudSyncFrequency?: 'Nunca' | 'Cada 6 horas' | 'Cada 24 horas' | 'Cada mes';
+    currency?: string;
 }
 
 export interface AppState {

@@ -51,7 +51,7 @@ export const renderIncomeDetailsView = (container: HTMLElement, navigate: Naviga
     detailsContainer.appendChild(createDetailItem('Nombre:', record.name));
     detailsContainer.appendChild(createDetailItem('Tipo:', record.type));
     detailsContainer.appendChild(createDetailItem('Fuente:', record.source));
-    detailsContainer.appendChild(createDetailItem('Monto:', `$ ${formatCurrency(record.amount)}`));
+    detailsContainer.appendChild(createDetailItem('Monto:', formatCurrency(record.amount, { includeSymbol: true })));
     if (record.date) {
         detailsContainer.appendChild(createDetailItem('Fecha:', record.date));
     }

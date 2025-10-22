@@ -93,10 +93,10 @@ export const renderExpenseDetailsView = (container, navigate, recordId) => {
     detailsContainer.appendChild(createDetailItem('Categoría:', record.category));
     
     if (record.type === 'Recurrente' && record.totalAmount && !record.isInfinite) {
-        detailsContainer.appendChild(createDetailItem('Monto Total:', `$ ${formatCurrency(record.totalAmount)}`));
-        detailsContainer.appendChild(createDetailItem('Monto de Cuota:', `$ ${formatCurrency(record.amount)}`));
+        detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(record.totalAmount, { includeSymbol: true })));
+        detailsContainer.appendChild(createDetailItem('Monto de Cuota:', formatCurrency(record.amount, { includeSymbol: true })));
     } else {
-        detailsContainer.appendChild(createDetailItem('Monto:', `$ ${formatCurrency(record.amount)}`));
+        detailsContainer.appendChild(createDetailItem('Monto:', formatCurrency(record.amount, { includeSymbol: true })));
     }
 
     if (record.date) {
