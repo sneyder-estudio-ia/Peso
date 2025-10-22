@@ -2,35 +2,54 @@ import { IncomeRecord, ExpenseRecord, SavingRecord } from '../types/index.js';
 import { formatCurrency } from '../utils/currency.js';
 import { formatRecurrence } from '../utils/helpers.js';
 import { appState, saveState } from '../state/store.js';
+import { showConfirmationModal } from './common.js';
 
 // This is a simplified navigate function type for this component's needs
 type NavigateFunction = (view: string, state: { recordType?: 'Recurrente' | 'Único', recordId?: string }) => void;
 
 const deleteIncomeRecord = (id: string, rerenderCallback: () => void) => {
-    const recordIndex = appState.incomeRecords.findIndex(rec => rec.id === id);
-    if (recordIndex > -1) {
-        appState.incomeRecords.splice(recordIndex, 1);
-        saveState(appState);
-        rerenderCallback();
-    }
+    showConfirmationModal(
+        'Confirmar Borrado',
+        '¿Estás seguro de que quieres borrar este ingreso? Esta acción no se puede deshacer.',
+        () => {
+            const recordIndex = appState.incomeRecords.findIndex(rec => rec.id === id);
+            if (recordIndex > -1) {
+                appState.incomeRecords.splice(recordIndex, 1);
+                saveState(appState);
+                rerenderCallback();
+            }
+        }
+    );
 };
 
 const deleteExpenseRecord = (id: string, rerenderCallback: () => void) => {
-    const recordIndex = appState.expenseRecords.findIndex(rec => rec.id === id);
-    if (recordIndex > -1) {
-        appState.expenseRecords.splice(recordIndex, 1);
-        saveState(appState);
-        rerenderCallback();
-    }
+    showConfirmationModal(
+        'Confirmar Borrado',
+        '¿Estás seguro de que quieres borrar este gasto? Esta acción no se puede deshacer.',
+        () => {
+            const recordIndex = appState.expenseRecords.findIndex(rec => rec.id === id);
+            if (recordIndex > -1) {
+                appState.expenseRecords.splice(recordIndex, 1);
+                saveState(appState);
+                rerenderCallback();
+            }
+        }
+    );
 };
 
 const deleteSavingRecord = (id: string, rerenderCallback: () => void) => {
-    const recordIndex = appState.savingRecords.findIndex(rec => rec.id === id);
-    if (recordIndex > -1) {
-        appState.savingRecords.splice(recordIndex, 1);
-        saveState(appState);
-        rerenderCallback();
-    }
+    showConfirmationModal(
+        'Confirmar Borrado',
+        '¿Estás seguro de que quieres borrar este ahorro? Esta acción no se puede deshacer.',
+        () => {
+            const recordIndex = appState.savingRecords.findIndex(rec => rec.id === id);
+            if (recordIndex > -1) {
+                appState.savingRecords.splice(recordIndex, 1);
+                saveState(appState);
+                rerenderCallback();
+            }
+        }
+    );
 };
 
 
@@ -71,7 +90,13 @@ export const createIncomeRecordCard = (record: IncomeRecord, navigate: NavigateF
         editButton.setAttribute('aria-label', `Editar ingreso ${record.name}`);
         editButton.onclick = (e) => {
             e.stopPropagation();
-            navigate('incomeForm', { recordType: record.type, recordId: record.id });
+            showConfirmationModal(
+                'Confirmar Edición',
+                '¿Estás seguro de que quieres editar este ingreso?',
+                () => navigate('incomeForm', { recordType: record.type, recordId: record.id }),
+                'btn-add',
+                'Editar'
+            );
         };
     
         const deleteButton = document.createElement('button');
@@ -130,7 +155,13 @@ export const createExpenseRecordCard = (record: ExpenseRecord, navigate: Navigat
     editButton.setAttribute('aria-label', `Editar gasto ${record.name}`);
     editButton.onclick = (e) => {
         e.stopPropagation();
-        navigate('expenseForm', { recordType: record.type, recordId: record.id });
+        showConfirmationModal(
+            'Confirmar Edición',
+            '¿Estás seguro de que quieres editar este gasto?',
+            () => navigate('expenseForm', { recordType: record.type, recordId: record.id }),
+            'btn-add',
+            'Editar'
+        );
     };
 
     const deleteButton = document.createElement('button');
@@ -187,7 +218,13 @@ export const createSavingRecordCard = (record: SavingRecord, navigate: NavigateF
     editButton.setAttribute('aria-label', `Editar ahorro ${record.name}`);
     editButton.onclick = (e) => {
         e.stopPropagation();
-        navigate('savingsForm', { recordType: record.type, recordId: record.id });
+        showConfirmationModal(
+            'Confirmar Edición',
+            '¿Estás seguro de que quieres editar este ahorro?',
+            () => navigate('savingsForm', { recordType: record.type, recordId: record.id }),
+            'btn-add',
+            'Editar'
+        );
     };
 
     const deleteButton = document.createElement('button');

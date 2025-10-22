@@ -122,3 +122,64 @@ export const showSavingTypeModal = (onSelect: (type: 'Recurrente' | 'Único') =>
         () => onSelect('Único')
     );
 };
+
+export const showConfirmationModal = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    confirmButtonClass: string = 'btn-expense', // default to red for deletions
+    confirmButtonText: string = 'Confirmar'
+) => {
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'modal-overlay';
+
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    modalContent.onclick = (e) => e.stopPropagation();
+
+    const modalTitle = document.createElement('h3');
+    modalTitle.className = 'modal-title';
+    modalTitle.textContent = title;
+
+    const modalMessage = document.createElement('p');
+    modalMessage.textContent = message;
+    modalMessage.style.marginBottom = '25px';
+    modalMessage.style.color = '#c9d1d9';
+    modalMessage.style.fontSize = '1rem';
+
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'button-container';
+
+    const closeModal = () => {
+        if (document.body.contains(modalOverlay)) {
+            modalOverlay.style.display = 'none';
+            document.body.removeChild(modalOverlay);
+        }
+    };
+
+    const confirmButton = document.createElement('button');
+    confirmButton.className = `btn ${confirmButtonClass}`;
+    confirmButton.textContent = confirmButtonText;
+    confirmButton.onclick = () => {
+        onConfirm();
+        closeModal();
+    };
+
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'btn btn-option';
+    cancelButton.textContent = 'Cancelar';
+    cancelButton.onclick = closeModal;
+
+    buttonContainer.appendChild(cancelButton);
+    buttonContainer.appendChild(confirmButton);
+
+    modalContent.appendChild(modalTitle);
+    modalContent.appendChild(modalMessage);
+    modalContent.appendChild(buttonContainer);
+    modalOverlay.appendChild(modalContent);
+
+    modalOverlay.onclick = closeModal;
+
+    document.body.appendChild(modalOverlay);
+    modalOverlay.style.display = 'flex';
+};
