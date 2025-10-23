@@ -283,18 +283,43 @@ export const renderDashboardView = (container, navigate) => {
     const expenseInCurrentPeriod = calculateValueInDateRange(appState.expenseRecords, periodStartDate, periodEndDate);
     // --- Calculate "Restante" (Remaining) with carry-over logic ---
     // 1. Determine the absolute start time of any record keeping.
-    const allRecordIds = [...appState.incomeRecords, ...appState.expenseRecords].map(r => r.id);
-    const allTimestamps = allRecordIds
-        .map(id => {
-        const parts = id.split('-');
-        if (parts.length > 1 && !isNaN(parseInt(parts[1], 10))) {
-            return parseInt(parts[1], 10);
+    const timestampsFromIds = [...appState.incomeRecords, ...appState.expenseRecords]
+        .map(r => {
+        const parts = r.id.split('-');
+        const lastPart = parts.pop();
+        if (!lastPart)
+            return null;
+        // Handle cases like 'inc-sal-sal-TIMESTAMP'
+        const potentialTimestampStr = lastPart.split('-').pop();
+        if (potentialTimestampStr) {
+            const timestamp = parseInt(potentialTimestampStr, 10);
+            if (!isNaN(timestamp))
+                return timestamp;
         }
         return null;
     })
         .filter(ts => ts !== null);
-    // If there are no records, startOfTime is now, and all calculations will result in 0.
-    const startOfTime = allTimestamps.length > 0 ? new Date(Math.min(...allTimestamps)) : now;
+    const datesFromUniqueRecords = [];
+    const processRecordsForDates = (records) => {
+        records.forEach(record => {
+            if (record.type === 'Único') {
+                if (record.isGroup) {
+                    record.items?.forEach(item => {
+                        if (item.date) {
+                            datesFromUniqueRecords.push(new Date(item.date + 'T00:00:00').getTime());
+                        }
+                    });
+                }
+                else if (record.date) {
+                    datesFromUniqueRecords.push(new Date(record.date + 'T00:00:00').getTime());
+                }
+            }
+        });
+    };
+    processRecordsForDates(appState.incomeRecords);
+    processRecordsForDates(appState.expenseRecords);
+    const allHistoricalTimestamps = [...timestampsFromIds, ...datesFromUniqueRecords];
+    const startOfTime = allHistoricalTimestamps.length > 0 ? new Date(Math.min(...allHistoricalTimestamps)) : now;
     // 2. Calculate the carry-over balance from all previous periods.
     // This is the total balance from the beginning of time up to the day before the current period starts.
     const dayBeforeCurrentPeriod = new Date(periodStartDate);

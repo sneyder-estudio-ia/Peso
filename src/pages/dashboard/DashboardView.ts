@@ -1,3 +1,20 @@
+/**
+ * @license
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { createCard } from '../../components/common.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { appState } from '../../state/store.js';
@@ -310,19 +327,43 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     // --- Calculate "Restante" (Remaining) with carry-over logic ---
 
     // 1. Determine the absolute start time of any record keeping.
-    const allRecordIds = [...appState.incomeRecords, ...appState.expenseRecords].map(r => r.id);
-    const allTimestamps = allRecordIds
-        .map(id => {
-            const parts = id.split('-');
-            if (parts.length > 1 && !isNaN(parseInt(parts[1], 10))) {
-                return parseInt(parts[1], 10);
-            }
-            return null;
-        })
-        .filter(ts => ts !== null) as number[];
+    const timestampsFromIds = [...appState.incomeRecords, ...appState.expenseRecords]
+      .map(r => {
+        const parts = r.id.split('-');
+        const lastPart = parts.pop();
+        if (!lastPart) return null;
+        // Handle cases like 'inc-sal-sal-TIMESTAMP'
+        const potentialTimestampStr = lastPart.split('-').pop();
+        if (potentialTimestampStr) {
+            const timestamp = parseInt(potentialTimestampStr, 10);
+            if (!isNaN(timestamp)) return timestamp;
+        }
+        return null;
+      })
+      .filter(ts => ts !== null) as number[];
 
-    // If there are no records, startOfTime is now, and all calculations will result in 0.
-    const startOfTime = allTimestamps.length > 0 ? new Date(Math.min(...allTimestamps)) : now;
+    const datesFromUniqueRecords: number[] = [];
+    const processRecordsForDates = (records: (IncomeRecord[] | ExpenseRecord[])) => {
+        records.forEach(record => {
+            if (record.type === 'Único') {
+                if ((record as ExpenseRecord).isGroup) {
+                    (record as ExpenseRecord).items?.forEach(item => {
+                        if (item.date) {
+                            datesFromUniqueRecords.push(new Date(item.date + 'T00:00:00').getTime());
+                        }
+                    });
+                } else if (record.date) {
+                    datesFromUniqueRecords.push(new Date(record.date + 'T00:00:00').getTime());
+                }
+            }
+        });
+    };
+    
+    processRecordsForDates(appState.incomeRecords);
+    processRecordsForDates(appState.expenseRecords);
+
+    const allHistoricalTimestamps = [...timestampsFromIds, ...datesFromUniqueRecords];
+    const startOfTime = allHistoricalTimestamps.length > 0 ? new Date(Math.min(...allHistoricalTimestamps)) : now;
 
     // 2. Calculate the carry-over balance from all previous periods.
     // This is the total balance from the beginning of time up to the day before the current period starts.

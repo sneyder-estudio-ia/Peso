@@ -3,10 +3,134 @@ import { createCard, createSimpleCard } from '../../components/common.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { createExpenseBreakdownChart } from '../../components/charts.js';
 import { createCalendar } from '../../components/Calendar.js';
+import { IncomeRecord, ExpenseRecord } from '../../types/index.js';
 
 const categoryColors = [
     '#388bfd', '#238636', '#d29922', '#f85149', '#a371f7', '#1f6feb', '#da3633', '#e36209'
 ];
+
+const dayNameToIndex: { [key: string]: number } = {
+    'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+};
+
+const calculateValueInDateRange = (
+    records: (IncomeRecord[] | ExpenseRecord[]),
+    startDate: Date,
+    endDate: Date
+): number => {
+    let total = 0;
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    if (start > end) {
+        return 0;
+    }
+
+    records.forEach(record => {
+        if ((record as ExpenseRecord).isGroup && (record as ExpenseRecord).items) {
+            (record as ExpenseRecord).items!.forEach(item => {
+                if (record.type === 'Único' && item.date) {
+                    const dateParts = item.date.split('-').map(Number);
+                    const recordDateNum = dateParts[0] * 10000 + dateParts[1] * 100 + dateParts[2];
+                    const startDateNum = start.getFullYear() * 10000 + (start.getMonth() + 1) * 100 + start.getDate();
+                    const endDateNum = end.getFullYear() * 10000 + (end.getMonth() + 1) * 100 + end.getDate();
+    
+                    if (recordDateNum >= startDateNum && recordDateNum <= endDateNum) {
+                        total += item.amount;
+                    }
+                } 
+                else if (record.type === 'Recurrente' && item.recurrence) {
+                    const isItemWithDuration = 'durationInMonths' in item && typeof item.durationInMonths === 'number' && item.durationInMonths > 0;
+                    let isCompleted = false;
+                    if (isItemWithDuration && !item.isInfinite) {
+                        if ((item.installmentsPaid ?? 0) >= item.durationInMonths!) {
+                            isCompleted = true;
+                        }
+                    }
+    
+                    if (!isCompleted) {
+                        let currentDate = new Date(start);
+                        while (currentDate <= end) {
+                            let eventHappens = false;
+                            switch (item.recurrence.type) {
+                                case 'Diario': eventHappens = true; break;
+                                case 'Semanal':
+                                    const targetDayIndex = dayNameToIndex[item.recurrence.dayOfWeek!];
+                                    if (currentDate.getDay() === targetDayIndex) eventHappens = true;
+                                    break;
+                                case 'Quincenal': case 'Mensual':
+                                    const dayOfMonth = currentDate.getDate();
+                                    if (item.recurrence.daysOfMonth?.includes(dayOfMonth)) eventHappens = true;
+                                    break;
+                            }
+                            if (eventHappens) total += item.amount;
+                            currentDate.setDate(currentDate.getDate() + 1);
+                        }
+                    }
+                }
+            });
+        } else {
+            if (record.type === 'Único' && record.date) {
+                const dateParts = record.date.split('-').map(Number);
+                const recordDateNum = dateParts[0] * 10000 + dateParts[1] * 100 + dateParts[2];
+                
+                const startDateNum = start.getFullYear() * 10000 + (start.getMonth() + 1) * 100 + start.getDate();
+                const endDateNum = end.getFullYear() * 10000 + (end.getMonth() + 1) * 100 + end.getDate();
+
+                if (recordDateNum >= startDateNum && recordDateNum <= endDateNum) {
+                    total += record.amount;
+                }
+
+            } else if (record.type === 'Recurrente' && record.recurrence) {
+                const expenseRecord = record as ExpenseRecord;
+                const isExpenseWithDuration = 'durationInMonths' in expenseRecord && typeof expenseRecord.durationInMonths === 'number' && expenseRecord.durationInMonths > 0;
+                let isCompleted = false;
+
+                if (isExpenseWithDuration && !expenseRecord.isInfinite) {
+                    if ((expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths!) {
+                        isCompleted = true;
+                    }
+                }
+
+                if (!isCompleted) {
+                    let currentDate = new Date(start);
+                    while (currentDate <= end) {
+                        let eventHappens = false;
+                        switch (record.recurrence.type) {
+                            case 'Diario':
+                                eventHappens = true;
+                                break;
+                            case 'Semanal':
+                                const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek!];
+                                if (currentDate.getDay() === targetDayIndex) {
+                                    eventHappens = true;
+                                }
+                                break;
+                            case 'Quincenal':
+                            case 'Mensual':
+                                const dayOfMonth = currentDate.getDate();
+                                if (record.recurrence.daysOfMonth?.includes(dayOfMonth)) {
+                                    eventHappens = true;
+                                }
+                                break;
+                        }
+                        if (eventHappens) {
+                            total += record.amount;
+                        }
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+                }
+            }
+        }
+    });
+
+    return total;
+};
+
 
 export const renderStatisticsView = (container: HTMLElement, navigate: (view: 'statistics' | 'settings') => void) => {
     container.innerHTML = ''; // Clear previous content
@@ -46,16 +170,57 @@ export const renderStatisticsView = (container: HTMLElement, navigate: (view: 's
     // --- Balance Card ---
     const balanceSection = document.createElement('div');
     balanceSection.className = 'stats-section';
+
+    const now = new Date();
     
-    const totalIncome = appState.incomeRecords.reduce((sum, record) => sum + record.amount, 0);
-    const totalExpense = appState.expenseRecords.reduce((sum, record) => sum + record.amount, 0);
+    // Get earliest date from record creation IDs and unique record dates
+    const timestampsFromIds = [...appState.incomeRecords, ...appState.expenseRecords]
+      .map(r => {
+        const parts = r.id.split('-');
+        const lastPart = parts.pop();
+        if (!lastPart) return null;
+        // Handle cases like 'inc-sal-sal-TIMESTAMP'
+        const potentialTimestampStr = lastPart.split('-').pop();
+        if (potentialTimestampStr) {
+            const timestamp = parseInt(potentialTimestampStr, 10);
+            if (!isNaN(timestamp)) return timestamp;
+        }
+        return null;
+      })
+      .filter(ts => ts !== null) as number[];
+
+    const datesFromUniqueRecords: number[] = [];
+    const processRecordsForDates = (records: (IncomeRecord[] | ExpenseRecord[])) => {
+        records.forEach(record => {
+            if (record.type === 'Único') {
+                if ((record as ExpenseRecord).isGroup) {
+                    (record as ExpenseRecord).items?.forEach(item => {
+                        if (item.date) {
+                            datesFromUniqueRecords.push(new Date(item.date + 'T00:00:00').getTime());
+                        }
+                    });
+                } else if (record.date) {
+                    datesFromUniqueRecords.push(new Date(record.date + 'T00:00:00').getTime());
+                }
+            }
+        });
+    };
+    
+    processRecordsForDates(appState.incomeRecords);
+    processRecordsForDates(appState.expenseRecords);
+
+    const allHistoricalTimestamps = [...timestampsFromIds, ...datesFromUniqueRecords];
+    const startOfTime = allHistoricalTimestamps.length > 0 ? new Date(Math.min(...allHistoricalTimestamps)) : now;
+    
+    const totalIncome = calculateValueInDateRange(appState.incomeRecords, startOfTime, now);
+    const totalExpense = calculateValueInDateRange(appState.expenseRecords, startOfTime, now);
     const balance = totalIncome - totalExpense;
 
     const balanceCard = createCard(
-        'Balance General',
+        'Balance General (Histórico)',
         formatCurrency(balance, { includeSymbol: true }),
         balance >= 0 ? 'income' : 'expense',
-        'Ingresos vs Gastos',
+        'Ingresos vs Gastos Totales',
         `${formatCurrency(totalIncome, { includeSymbol: true })} / ${formatCurrency(totalExpense, { includeSymbol: true })}`
     );
     balanceCard.classList.add('balance-card');
@@ -67,11 +232,20 @@ export const renderStatisticsView = (container: HTMLElement, navigate: (view: 's
     expenseSection.className = 'stats-section';
 
     const expenseCard = createSimpleCard('Desglose de Gastos');
+    
+    const totalExpenseForChart = appState.expenseRecords.reduce((sum, record) => sum + record.amount, 0);
 
     if (appState.expenseRecords.length > 0) {
         const expenseByCategory = appState.expenseRecords.reduce((acc, record) => {
-            const category = record.category || 'General';
-            acc[category] = (acc[category] || 0) + record.amount;
+            if (record.isGroup) {
+                // For a group, use its name as the category label.
+                const category = record.name || 'Grupo';
+                acc[category] = (acc[category] || 0) + record.amount;
+            } else {
+                // For a normal expense, use its category.
+                const category = record.category || 'General';
+                acc[category] = (acc[category] || 0) + record.amount;
+            }
             return acc;
         }, {} as { [key: string]: number });
 
@@ -83,7 +257,7 @@ export const renderStatisticsView = (container: HTMLElement, navigate: (view: 's
             }))
             .sort((a, b) => b.value - a.value);
 
-        const breakdownChart = createExpenseBreakdownChart(chartData, totalExpense, appState.expenseRecords);
+        const breakdownChart = createExpenseBreakdownChart(chartData, totalExpenseForChart, appState.expenseRecords);
         expenseCard.appendChild(breakdownChart);
 
     } else {

@@ -572,6 +572,69 @@ textarea.form-input {
     word-wrap: break-word; /* For long descriptions */
 }
 
+/* --- Expense Group Details Item --- */
+.expense-group-item-card {
+    background-color: #0d1117;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.item-main-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.item-name-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+}
+
+.item-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #c9d1d9;
+}
+
+.item-date {
+    font-size: 0.8rem;
+    color: #8b949e;
+}
+
+.item-amount {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #f85149; /* expense color */
+    flex-shrink: 0;
+    margin-left: 10px;
+}
+
+.item-progress-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.item-progress-info .progress-bar {
+    flex-grow: 1;
+    margin: 0; /* Override margin from other uses */
+}
+
+.item-percentage {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #8b949e;
+    width: 45px; /* give it a fixed width for alignment */
+    text-align: right;
+    flex-shrink: 0;
+}
+
 /* --- Donut Chart Styles --- */
 .chart-container {
     position: relative;

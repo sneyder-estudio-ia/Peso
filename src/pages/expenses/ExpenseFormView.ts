@@ -1,3 +1,20 @@
+/**
+ * @license
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import { appState, saveState } from '../../state/store.js';
 import { ExpenseRecord, RecurrenceRule, ExpenseSubItem } from '../../types/index.js';
 import { parseCurrency, formatCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
@@ -121,21 +138,28 @@ export const renderExpenseFormView = (
     const renderMultipleUniqueForm = (form: HTMLFormElement) => {
         const groupTitleField = createFormField('Título del Grupo de Gastos', 'text', 'expense-group-title', 'Ej: Gastos de Viaje');
         form.appendChild(groupTitleField);
-
+    
         const itemsContainer = document.createElement('div');
         itemsContainer.id = 'multiple-items-container';
         itemsContainer.style.display = 'flex';
         itemsContainer.style.flexDirection = 'column';
         itemsContainer.style.gap = '20px';
         form.appendChild(itemsContainer);
-
+    
         const renderItems = () => {
-            itemsContainer.innerHTML = '';
+            // 1. Preserve values before wiping
+            const values = new Map<string, string>();
+            itemsContainer.querySelectorAll('input').forEach(input => {
+                values.set(input.id, input.value);
+            });
+    
+            itemsContainer.innerHTML = ''; // Wipe only the items container
+    
             multipleExpenseEntries.forEach((entry, index) => {
                 const itemWrapper = document.createElement('div');
                 itemWrapper.className = 'frequency-details'; // Reuse style
                 itemWrapper.dataset.id = String(entry.id);
-
+    
                 const itemHeader = document.createElement('div');
                 itemHeader.style.display = 'flex';
                 itemHeader.style.justifyContent = 'space-between';
@@ -169,8 +193,16 @@ export const renderExpenseFormView = (
                 
                 itemsContainer.appendChild(itemWrapper);
             });
+    
+            // 2. Restore values
+            values.forEach((value, id) => {
+                const input = itemsContainer.querySelector(`#${id}`) as HTMLInputElement;
+                if (input) {
+                    input.value = value;
+                }
+            });
         };
-
+    
         const addAnotherButton = document.createElement('button');
         addAnotherButton.textContent = 'Agregar Otro Gasto';
         addAnotherButton.type = 'button';
@@ -357,7 +389,21 @@ export const renderExpenseFormView = (
         form.appendChild(itemsContainer);
     
         const renderItems = () => {
+            // 1. Preserve values
+            const values = new Map<string, string | boolean>();
+            itemsContainer.querySelectorAll('input, select').forEach(el => {
+                const input = el as HTMLInputElement | HTMLSelectElement;
+                if (input.type === 'checkbox' || input.type === 'radio') {
+                    if ((input as HTMLInputElement).checked) {
+                        values.set(input.id, true);
+                    }
+                } else {
+                    values.set(input.id, input.value);
+                }
+            });
+    
             itemsContainer.innerHTML = '';
+    
             multipleExpenseEntries.forEach((entry, index) => {
                 const itemWrapper = document.createElement('div');
                 itemWrapper.className = 'frequency-details';
@@ -420,9 +466,8 @@ export const renderExpenseFormView = (
                 };
     
                 isInfiniteCheckbox.onchange = () => toggleInfiniteFields(isInfiniteCheckbox.checked);
-                toggleInfiniteFields(isInfiniteCheckbox.checked); // Initial state
+                toggleInfiniteFields(false); // Initial state
                 
-                // --- Frequency section with unique names ---
                 const frequencyGroup = document.createElement('div');
                 frequencyGroup.className = 'form-group';
                 const frequencyLabel = document.createElement('label');
@@ -440,7 +485,7 @@ export const renderExpenseFormView = (
                     const radio = document.createElement('input');
                     radio.type = 'radio';
                     radio.id = `exp-freq-${freq}-${entry.id}`;
-                    radio.name = `expense-frequency-${entry.id}`; // Unique name
+                    radio.name = `expense-frequency-${entry.id}`;
                     radio.value = freq;
                     const label = document.createElement('label');
                     label.htmlFor = `exp-freq-${freq}-${entry.id}`;
@@ -455,6 +500,7 @@ export const renderExpenseFormView = (
                     if (target.value === 'Semanal') {
                         const weekSelect = document.createElement('select');
                         weekSelect.name = `dayOfWeek-${entry.id}`;
+                        weekSelect.id = `dayOfWeek-${entry.id}`;
                         weekSelect.className = 'form-input';
                         const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
                         days.forEach(day => {
@@ -478,6 +524,21 @@ export const renderExpenseFormView = (
                 itemWrapper.appendChild(frequencyGroup);
     
                 itemsContainer.appendChild(itemWrapper);
+            });
+    
+            // 2. Restore values
+            values.forEach((value, id) => {
+                const input = itemsContainer.querySelector(`#${id}`) as HTMLInputElement | HTMLSelectElement;
+                if (input) {
+                    if (input.type === 'checkbox' || input.type === 'radio') {
+                        if (value === true) {
+                            (input as HTMLInputElement).checked = true;
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    } else {
+                        input.value = value as string;
+                    }
+                }
             });
         };
     

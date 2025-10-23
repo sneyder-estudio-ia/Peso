@@ -45,56 +45,76 @@ export const renderExpenseDetailsView = (container: HTMLElement, navigate: Navig
     container.appendChild(header);
     container.appendChild(title);
 
-    if (record.isGroup && record.items) {
+    if (record.isGroup && record.items && record.items.length > 0) {
+        // --- 1. Calculate Stats ---
+        const totalAmount = record.amount;
+        const itemCount = record.items.length;
+        const averageAmount = totalAmount / itemCount;
+        const amounts = record.items.map(item => item.amount);
+        const maxAmount = Math.max(...amounts);
+        const minAmount = Math.min(...amounts);
+
+        // --- 2. Render Summary ---
         const detailsContainer = document.createElement('div');
         detailsContainer.className = 'details-container';
         
         detailsContainer.appendChild(createDetailItem('Nombre del Grupo:', record.name));
-        detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(record.amount, { includeSymbol: true })));
-        detailsContainer.appendChild(createDetailItem('Número de Gastos:', record.items.length));
+        detailsContainer.appendChild(createDetailItem('Tipo de Grupo:', record.type));
+        detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(totalAmount, { includeSymbol: true })));
+        detailsContainer.appendChild(createDetailItem('Número de Gastos:', itemCount));
+        detailsContainer.appendChild(createDetailItem('Gasto Promedio:', formatCurrency(averageAmount, { includeSymbol: true })));
+        detailsContainer.appendChild(createDetailItem('Gasto Más Alto:', formatCurrency(maxAmount, { includeSymbol: true })));
+        detailsContainer.appendChild(createDetailItem('Gasto Más Bajo:', formatCurrency(minAmount, { includeSymbol: true })));
         container.appendChild(detailsContainer);
     
+        // --- 3. Render Items List ---
         const itemsTitle = document.createElement('h3');
         itemsTitle.className = 'card-title';
-        itemsTitle.textContent = 'Gastos Incluidos';
+        itemsTitle.textContent = 'Desglose de Gastos';
         itemsTitle.style.marginTop = '30px';
         container.appendChild(itemsTitle);
     
         const itemsListContainer = document.createElement('div');
-        itemsListContainer.id = 'expense-list-container';
+        itemsListContainer.id = 'expense-list-container'; // Reuse style for gap
         container.appendChild(itemsListContainer);
     
-        record.items.forEach(item => {
+        // Sort items by amount, descending
+        record.items.sort((a,b) => b.amount - a.amount).forEach(item => { 
+            const percentage = totalAmount > 0 ? (item.amount / totalAmount) * 100 : 0;
+
             const itemCard = document.createElement('div');
-            itemCard.className = 'income-record-card';
-            itemCard.style.cursor = 'default';
-    
-            const info = document.createElement('div');
-            info.className = 'income-record-info';
-            
-            const name = document.createElement('span');
-            name.className = 'income-record-name';
-            name.textContent = item.name;
-    
-            const date = document.createElement('span');
-            date.className = 'income-record-date';
-            date.textContent = item.recurrence ? formatRecurrence(item.recurrence) : (item.date || '');
-    
-            info.appendChild(name);
-            info.appendChild(date);
-    
-            const rightContainer = document.createElement('div');
-            rightContainer.className = 'income-record-right';
-    
-            const amount = document.createElement('div');
-            amount.className = 'income-record-amount expense';
-            amount.textContent = formatCurrency(item.amount, { includeSymbol: true });
-    
-            rightContainer.appendChild(amount);
-            itemCard.appendChild(info);
-            itemCard.appendChild(rightContainer);
+            itemCard.className = 'expense-group-item-card';
+
+            itemCard.innerHTML = `
+                <div class="item-main-info">
+                    <div class="item-name-details">
+                        <span class="item-name">${item.name}</span>
+                        <span class="item-date">${item.recurrence ? formatRecurrence(item.recurrence) : (item.date || '')}</span>
+                    </div>
+                    <span class="item-amount">${formatCurrency(item.amount, { includeSymbol: true })}</span>
+                </div>
+                <div class="item-progress-info">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${percentage}%; background-color: #f85149;"></div>
+                    </div>
+                    <span class="item-percentage">${percentage.toFixed(1)}%</span>
+                </div>
+            `;
             itemsListContainer.appendChild(itemCard);
         });
+
+    } else if (record.isGroup) {
+        // --- Group with no items ---
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'details-container';
+        detailsContainer.appendChild(createDetailItem('Nombre del Grupo:', record.name));
+        detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(record.amount, { includeSymbol: true })));
+        container.appendChild(detailsContainer);
+
+        const emptyMessage = document.createElement('p');
+        emptyMessage.className = 'empty-list-message';
+        emptyMessage.textContent = 'Este grupo no contiene gastos.';
+        container.appendChild(emptyMessage);
 
     } else {
         // --- Donut Chart for Recurrent Expenses (only if not infinite) ---

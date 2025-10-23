@@ -1,5 +1,5 @@
 import { appState } from '../state/store.js';
-import { IncomeRecord, ExpenseRecord, SavingRecord } from '../types/index.js';
+import { IncomeRecord, ExpenseRecord, SavingRecord, ExpenseSubItem, RecurrenceRule } from '../types/index.js';
 import { formatCurrency } from '../utils/currency.js';
 
 // Helper to map Spanish day names to JS getDay() indices (0=Sun, 1=Mon, etc.)
@@ -19,31 +19,78 @@ const getRecordsForDate = (dateString: string) => {
     const dayOfMonth = checkDate.getDate();
     const dayOfWeek = checkDate.getDay();
 
-    const isRecurringOnDate = (record: (IncomeRecord | ExpenseRecord | SavingRecord)) => {
-        if (!record.recurrence) return false;
-
-        const expenseRecord = record as ExpenseRecord;
-        if ('isInfinite' in expenseRecord && !expenseRecord.isInfinite && expenseRecord.durationInMonths && (expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths) {
-            return false;
-        }
-
-        switch (record.recurrence.type) {
+    // Generic helper to check if a recurrence rule matches a specific date
+    const isRecurringOnDate = (recurrence: RecurrenceRule, checkDayOfMonth: number, checkDayOfWeek: number) => {
+        switch (recurrence.type) {
             case 'Diario':
                 return true;
             case 'Semanal':
-                const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek!];
-                return dayOfWeek === targetDayIndex;
+                const targetDayIndex = dayNameToIndex[recurrence.dayOfWeek!];
+                return checkDayOfWeek === targetDayIndex;
             case 'Quincenal':
             case 'Mensual':
-                return record.recurrence.daysOfMonth?.includes(dayOfMonth) ?? false;
+                return recurrence.daysOfMonth?.includes(checkDayOfMonth) ?? false;
             default:
                 return false;
         }
     };
 
-    records.incomes.push(...appState.incomeRecords.filter(r => (r.type === 'Único' && r.date === dateString) || (r.type === 'Recurrente' && isRecurringOnDate(r))));
-    records.expenses.push(...appState.expenseRecords.filter(r => (r.type === 'Único' && r.date === dateString) || (r.type === 'Recurrente' && isRecurringOnDate(r))));
-    records.savings.push(...appState.savingRecords.filter(r => (r.type === 'Único' && r.date === dateString) || (r.type === 'Recurrente' && isRecurringOnDate(r))));
+    // --- Process Incomes ---
+    appState.incomeRecords.forEach(r => {
+        if ((r.type === 'Único' && r.date === dateString) || (r.type === 'Recurrente' && r.recurrence && isRecurringOnDate(r.recurrence, dayOfMonth, dayOfWeek))) {
+            records.incomes.push(r);
+        }
+    });
+
+    // --- Process Savings ---
+    appState.savingRecords.forEach(r => {
+        if ((r.type === 'Único' && r.date === dateString) || (r.type === 'Recurrente' && r.recurrence && isRecurringOnDate(r.recurrence, dayOfMonth, dayOfWeek))) {
+            records.savings.push(r);
+        }
+    });
+
+    // --- Process Expenses (including groups) ---
+    appState.expenseRecords.forEach(record => {
+        if (record.isGroup && record.items) {
+            // It's a group, so we check each sub-item
+            record.items.forEach(item => {
+                let itemMatches = false;
+                if (record.type === 'Único' && item.date === dateString) {
+                    itemMatches = true;
+                } else if (record.type === 'Recurrente' && item.recurrence && isRecurringOnDate(item.recurrence, dayOfMonth, dayOfWeek)) {
+                    // Check if this specific recurring item is completed
+                    if (!item.isInfinite && item.durationInMonths && (item.installmentsPaid ?? 0) >= item.durationInMonths) {
+                        return; // Skip this completed item
+                    }
+                    itemMatches = true;
+                }
+
+                if (itemMatches) {
+                    // Create a synthetic record to display in the modal
+                    const syntheticRecord: ExpenseRecord = {
+                        id: `group-item-${Math.random()}`, // A temp id is fine as it's not interactive
+                        name: item.name,
+                        amount: item.amount,
+                        type: record.type,
+                        category: `Grupo: ${record.name}`,
+                        description: record.description, // Can use group description
+                        date: item.date,
+                        recurrence: item.recurrence,
+                    };
+                    records.expenses.push(syntheticRecord);
+                }
+            });
+        } else {
+            // It's a single record, check it directly
+            if ((record.type === 'Único' && record.date === dateString) || (record.type === 'Recurrente' && record.recurrence && isRecurringOnDate(record.recurrence, dayOfMonth, dayOfWeek))) {
+                // Check if this recurring expense is completed
+                if (record.type === 'Recurrente' && !record.isInfinite && record.durationInMonths && (record.installmentsPaid ?? 0) >= record.durationInMonths) {
+                    return; // Skip completed single record
+                }
+                records.expenses.push(record);
+            }
+        }
+    });
     
     return records;
 };
@@ -161,52 +208,60 @@ export const createCalendar = (date: Date, onDateChange: (newDate: Date) => void
                 type: 'income' | 'expense' | 'savings'
             ) => {
                 records.forEach(record => {
-                    // Process one-time records
-                    if (record.type === 'Único' && record.date) {
-                        const [recYear, recMonth] = record.date.split('-').map(Number);
-                        // Check if the record is in the currently viewed month and year
-                        if (recYear === year && recMonth === month + 1) {
-                            if (!recordsByDate[record.date]) recordsByDate[record.date] = { income: false, expense: false, savings: false };
-                            recordsByDate[record.date][type] = true;
-                        }
-                    }
-                    // Process recurrent records
-                    else if (record.type === 'Recurrente' && record.recurrence) {
-                        // For fixed-duration expenses, check if they are completed
-                        const expenseRecord = record as ExpenseRecord;
-                        if (type === 'expense' && !expenseRecord.isInfinite && expenseRecord.durationInMonths && (expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths) {
-                            return; // Skip completed expenses
-                        }
+                    // Create a list of items to check. For groups, it's the sub-items. For others, it's the record itself.
+                    const itemsToCheck: (IncomeRecord | ExpenseRecord | SavingRecord | ExpenseSubItem)[] = 
+                        (type === 'expense' && (record as ExpenseRecord).isGroup) 
+                        ? (record as ExpenseRecord).items || [] 
+                        : [record];
 
-                        for (let day = 1; day <= daysInMonth; day++) {
-                            const checkDate = new Date(year, month, day);
-                            let eventHappens = false;
-                            
-                            switch (record.recurrence.type) {
-                                case 'Diario':
-                                    eventHappens = true;
-                                    break;
-                                case 'Semanal':
-                                    const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek!];
-                                    if (checkDate.getDay() === targetDayIndex) {
-                                        eventHappens = true;
-                                    }
-                                    break;
-                                case 'Quincenal':
-                                case 'Mensual':
-                                    if (record.recurrence.daysOfMonth?.includes(day)) {
-                                        eventHappens = true;
-                                    }
-                                    break;
-                            }
-
-                            if (eventHappens) {
-                                const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                                if (!recordsByDate[dateString]) recordsByDate[dateString] = { income: false, expense: false, savings: false };
-                                recordsByDate[dateString][type] = true;
+                    itemsToCheck.forEach(item => {
+                        // Process one-time records/items
+                        if (record.type === 'Único' && item.date) {
+                            const [recYear, recMonth] = item.date.split('-').map(Number);
+                            // Check if the record is in the currently viewed month and year
+                            if (recYear === year && recMonth === month + 1) {
+                                if (!recordsByDate[item.date]) recordsByDate[item.date] = { income: false, expense: false, savings: false };
+                                recordsByDate[item.date][type] = true;
                             }
                         }
-                    }
+                        // Process recurrent records/items
+                        else if (record.type === 'Recurrente' && item.recurrence) {
+                            // For fixed-duration expenses, check if they are completed
+                            const expenseItem = item as (ExpenseRecord | ExpenseSubItem);
+                            if (type === 'expense' && !expenseItem.isInfinite && expenseItem.durationInMonths && (expenseItem.installmentsPaid ?? 0) >= expenseItem.durationInMonths) {
+                                return; // Skip this completed item
+                            }
+
+                            for (let day = 1; day <= daysInMonth; day++) {
+                                const checkDate = new Date(year, month, day);
+                                let eventHappens = false;
+                                
+                                switch (item.recurrence.type) {
+                                    case 'Diario':
+                                        eventHappens = true;
+                                        break;
+                                    case 'Semanal':
+                                        const targetDayIndex = dayNameToIndex[item.recurrence.dayOfWeek!];
+                                        if (checkDate.getDay() === targetDayIndex) {
+                                            eventHappens = true;
+                                        }
+                                        break;
+                                    case 'Quincenal':
+                                    case 'Mensual':
+                                        if (item.recurrence.daysOfMonth?.includes(day)) {
+                                            eventHappens = true;
+                                        }
+                                        break;
+                                }
+
+                                if (eventHappens) {
+                                    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                    if (!recordsByDate[dateString]) recordsByDate[dateString] = { income: false, expense: false, savings: false };
+                                    recordsByDate[dateString][type] = true;
+                                }
+                            }
+                        }
+                    });
                 });
             };
             
