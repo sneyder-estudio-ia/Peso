@@ -41,8 +41,9 @@ const deleteIncomeRecord = (id) => {
     showConfirmationModal('Confirmar Borrado', 'El registro se moverá a "Archivado", donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
         const recordIndex = appState.incomeRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
-            const [recordToArchive] = appState.incomeRecords.splice(recordIndex, 1);
-            if (recordToArchive) {
+            const removedItems = appState.incomeRecords.splice(recordIndex, 1);
+            if (removedItems && removedItems.length > 0) {
+                const recordToArchive = removedItems[0];
                 appState.archivedRecords.push({
                     ...recordToArchive,
                     archivedAt: Date.now(),
@@ -58,8 +59,9 @@ const deleteExpenseRecord = (id) => {
     showConfirmationModal('Confirmar Borrado', 'El registro se moverá a "Archivado", donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
         const recordIndex = appState.expenseRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
-            const [recordToArchive] = appState.expenseRecords.splice(recordIndex, 1);
-            if (recordToArchive) {
+            const removedItems = appState.expenseRecords.splice(recordIndex, 1);
+            if (removedItems && removedItems.length > 0) {
+                const recordToArchive = removedItems[0];
                 appState.archivedRecords.push({
                     ...recordToArchive,
                     archivedAt: Date.now(),
@@ -75,8 +77,9 @@ const deleteSavingRecord = (id) => {
     showConfirmationModal('Confirmar Borrado', 'El registro se moverá a "Archivado", donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
         const recordIndex = appState.savingRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
-            const [recordToArchive] = appState.savingRecords.splice(recordIndex, 1);
-            if (recordToArchive) {
+            const removedItems = appState.savingRecords.splice(recordIndex, 1);
+            if (removedItems && removedItems.length > 0) {
+                const recordToArchive = removedItems[0];
                 appState.archivedRecords.push({
                     ...recordToArchive,
                     archivedAt: Date.now(),
