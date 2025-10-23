@@ -119,7 +119,7 @@ export const renderIncomeFormView = (
                 const index = appState.incomeRecords.findIndex(rec => rec.id === recordId);
                 if (index > -1) appState.incomeRecords[index] = newRecord;
             } else {
-                appState.incomeRecords.push(newRecord);
+                appState.incomeRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Ingreso actualizado' : 'Éxito: Ingreso guardado');
             saveState(appState);
@@ -256,7 +256,7 @@ export const renderIncomeFormView = (
                 const index = appState.incomeRecords.findIndex(rec => rec.id === recordId);
                 if (index > -1) appState.incomeRecords[index] = newRecord;
             } else {
-                appState.incomeRecords.push(newRecord);
+                appState.incomeRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Ingreso actualizado' : 'Éxito: Ingreso guardado');
             saveState(appState);

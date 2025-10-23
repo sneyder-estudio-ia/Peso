@@ -196,7 +196,7 @@ export const renderSavingsFormView = (
                 const index = appState.savingRecords.findIndex(rec => rec.id === recordId);
                 if (index > -1) appState.savingRecords[index] = newRecord;
             } else {
-                appState.savingRecords.push(newRecord);
+                appState.savingRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
             saveState(appState);
@@ -330,7 +330,7 @@ export const renderSavingsFormView = (
                 const index = appState.savingRecords.findIndex(rec => rec.id === recordId);
                 if (index > -1) appState.savingRecords[index] = newRecord;
             } else {
-                appState.savingRecords.push(newRecord);
+                appState.savingRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
             saveState(appState);

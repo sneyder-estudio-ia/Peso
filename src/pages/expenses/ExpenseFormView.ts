@@ -116,7 +116,7 @@ export const renderExpenseFormView = (
                 const index = appState.expenseRecords.findIndex(rec => rec.id === recordId);
                 if (index > -1) appState.expenseRecords[index] = newRecord;
             } else {
-                appState.expenseRecords.push(newRecord);
+                appState.expenseRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Gasto actualizado' : 'Éxito: Gasto guardado');
             saveState(appState);
@@ -297,7 +297,7 @@ export const renderExpenseFormView = (
                 const index = appState.expenseRecords.findIndex(rec => rec.id === recordId);
                 if (index > -1) appState.expenseRecords[index] = newRecord;
             } else {
-                appState.expenseRecords.push(newRecord);
+                appState.expenseRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Gasto actualizado' : 'Éxito: Gasto guardado');
             saveState(appState);

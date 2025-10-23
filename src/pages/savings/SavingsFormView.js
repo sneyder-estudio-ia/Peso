@@ -1,45 +1,30 @@
 import { appState, saveState } from '../../state/store.js';
 import { parseCurrency, formatCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
 import { showToast } from '../../components/Toast.js';
-
-export const renderSavingsFormView = (
-    container, 
-    navigate, 
-    type, 
-    recordId
-) => {
+export const renderSavingsFormView = (container, navigate, type, recordId) => {
     container.innerHTML = ''; // Clear previous content
-
     const isEditMode = !!recordId;
     const recordToEdit = isEditMode ? appState.savingRecords.find(rec => rec.id === recordId) : null;
-
     const header = document.createElement('div');
     header.className = 'income-page-header';
-
     const backButton = document.createElement('button');
     backButton.className = 'btn btn-back';
     backButton.innerHTML = '&larr; Volver'; // Left arrow
     backButton.onclick = () => navigate('savingsList');
-
     const saveButton = document.createElement('button');
     saveButton.className = 'btn btn-add';
     saveButton.textContent = 'Guardar';
-
     const title = document.createElement('h2');
     title.className = 'card-title';
     title.textContent = isEditMode ? `Editar Ahorro (${type})` : `Registro de Ahorro (${type})`;
-    
     header.appendChild(backButton);
     header.appendChild(saveButton);
-    
     container.appendChild(header);
     container.appendChild(title);
-
     const form = document.createElement('form');
     form.id = 'register-savings-form';
     form.className = 'income-form';
     form.onsubmit = (e) => e.preventDefault();
-
     const createFormField = (labelText, inputType, inputId, placeholder = '') => {
         const formGroup = document.createElement('div');
         formGroup.className = 'form-group';
@@ -51,13 +36,15 @@ export const renderSavingsFormView = (
         if (inputType === 'textarea') {
             input = document.createElement('textarea');
             input.rows = 3;
-        } else {
+        }
+        else {
             input = document.createElement('input');
             if (inputType === 'number') {
                 input.type = 'text';
                 input.inputMode = 'decimal';
                 input.addEventListener('input', handleNumericInputFormatting);
-            } else {
+            }
+            else {
                 input.type = inputType;
             }
         }
@@ -69,11 +56,9 @@ export const renderSavingsFormView = (
         formGroup.appendChild(input);
         return formGroup;
     };
-
     const nameField = createFormField('Nombre del ahorro', 'text', 'savings-name');
     const amountField = createFormField(type === 'Recurrente' ? 'Monto de la Cuota' : 'Monto a Ahorrar', 'number', 'savings-amount', '0');
     const goalAmountField = createFormField('Meta de Ahorro (Opcional)', 'number', 'savings-goal-amount', '0');
-    
     // --- Storage Type ---
     const storageTypeGroup = document.createElement('div');
     storageTypeGroup.className = 'form-group';
@@ -81,10 +66,8 @@ export const renderSavingsFormView = (
     storageTypeLabel.className = 'form-label';
     storageTypeLabel.textContent = '¿Dónde guardarás el ahorro?';
     storageTypeGroup.appendChild(storageTypeLabel);
-    
     const storageRadioContainer = document.createElement('div');
     storageRadioContainer.className = 'radio-group-container';
-    
     const storageTypes = ['Banco', 'Personal'];
     storageTypes.forEach(st => {
         const option = document.createElement('div');
@@ -102,15 +85,12 @@ export const renderSavingsFormView = (
         storageRadioContainer.appendChild(option);
     });
     storageTypeGroup.appendChild(storageRadioContainer);
-
     // --- Bank Details (Conditional) ---
     const bankDetailsContainer = document.createElement('div');
     bankDetailsContainer.id = 'bank-details-container';
     bankDetailsContainer.className = 'frequency-details';
     bankDetailsContainer.style.display = 'none';
-
     const bankNameField = createFormField('Nombre del Banco', 'text', 'savings-bank-name');
-    
     const accountTypeGroup = document.createElement('div');
     accountTypeGroup.className = 'form-group';
     const accountTypeLabel = document.createElement('label');
@@ -130,43 +110,35 @@ export const renderSavingsFormView = (
     });
     accountTypeGroup.appendChild(accountTypeLabel);
     accountTypeGroup.appendChild(accountTypeSelect);
-
     bankDetailsContainer.appendChild(bankNameField);
     bankDetailsContainer.appendChild(accountTypeGroup);
-
     storageTypeGroup.appendChild(bankDetailsContainer);
-
     storageRadioContainer.onchange = (e) => {
         const target = e.target;
         if (target.value === 'Banco') {
             bankDetailsContainer.style.display = 'flex';
-        } else {
+        }
+        else {
             bankDetailsContainer.style.display = 'none';
         }
     };
-
     const descriptionField = createFormField('Descripción', 'textarea', 'savings-description');
-
     form.appendChild(nameField);
     form.appendChild(amountField);
     form.appendChild(goalAmountField);
     form.appendChild(storageTypeGroup);
-    
     if (type === 'Único') {
         const dateField = createFormField('Fecha', 'date', 'savings-date');
         form.appendChild(dateField);
-
         if (isEditMode && recordToEdit && recordToEdit.date) {
             dateField.querySelector('input').value = recordToEdit.date;
         }
-        
         saveButton.onclick = () => {
             const formData = new FormData(form);
             const name = formData.get('savings-name');
             const amountStr = formData.get('savings-amount');
             const date = formData.get('savings-date');
             const storageType = form.querySelector('input[name="savings-storage-type"]:checked')?.value;
-
             if (!name || !amountStr || !date) {
                 alert('Por favor, complete los campos Nombre, Monto y Fecha.');
                 return;
@@ -175,7 +147,6 @@ export const renderSavingsFormView = (
                 alert('Por favor, seleccione si el ahorro es en Banco o Personal.');
                 return;
             }
-
             const newRecord = {
                 id: recordId || `sav-${Date.now()}`,
                 type: type,
@@ -188,19 +159,20 @@ export const renderSavingsFormView = (
                 accountType: storageType === 'Banco' ? formData.get('savings-account-type') : undefined,
                 goalAmount: parseCurrency(formData.get('savings-goal-amount')) || undefined,
             };
-
             if (isEditMode) {
                 const index = appState.savingRecords.findIndex(rec => rec.id === recordId);
-                if (index > -1) appState.savingRecords[index] = newRecord;
-            } else {
-                appState.savingRecords.push(newRecord);
+                if (index > -1)
+                    appState.savingRecords[index] = newRecord;
+            }
+            else {
+                appState.savingRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
             saveState(appState);
-
             setTimeout(() => navigate('savingsList'), 500);
         };
-    } else if (type === 'Recurrente') {
+    }
+    else if (type === 'Recurrente') {
         const frequencyGroup = document.createElement('div');
         frequencyGroup.className = 'form-group';
         const frequencyLabel = document.createElement('label');
@@ -243,7 +215,8 @@ export const renderSavingsFormView = (
                     weekSelect.appendChild(opt);
                 });
                 detailsContainer.appendChild(weekSelect);
-            } else if (target.value === 'Quincenal') {
+            }
+            else if (target.value === 'Quincenal') {
                 const day1Group = createFormField('Día 1', 'number', 'dayOfMonth1', '0');
                 const day1Input = day1Group.querySelector('input');
                 day1Input.name = 'daysOfMonth';
@@ -256,7 +229,8 @@ export const renderSavingsFormView = (
                 day2Input.max = '31';
                 detailsContainer.appendChild(day1Group);
                 detailsContainer.appendChild(day2Group);
-            } else if (target.value === 'Mensual') {
+            }
+            else if (target.value === 'Mensual') {
                 const dayGroup = createFormField('Día del mes', 'number', 'dayOfMonth1', '0');
                 const dayInput = dayGroup.querySelector('input');
                 dayInput.name = 'daysOfMonth';
@@ -268,7 +242,6 @@ export const renderSavingsFormView = (
         frequencyGroup.appendChild(radioContainer);
         frequencyGroup.appendChild(detailsContainer);
         form.appendChild(frequencyGroup);
-
         if (isEditMode && recordToEdit?.recurrence) {
             const freqRadio = form.querySelector(`input[name="savings-frequency"][value="${recordToEdit.recurrence.type}"]`);
             if (freqRadio) {
@@ -277,39 +250,40 @@ export const renderSavingsFormView = (
                 const recurrence = recordToEdit.recurrence;
                 if (recurrence.type === 'Semanal' && recurrence.dayOfWeek) {
                     detailsContainer.querySelector('select').value = recurrence.dayOfWeek;
-                } else if (recurrence.type === 'Quincenal' && recurrence.daysOfMonth) {
+                }
+                else if (recurrence.type === 'Quincenal' && recurrence.daysOfMonth) {
                     const inputs = detailsContainer.querySelectorAll('input[name="daysOfMonth"]');
-                    if (inputs[0]) inputs[0].value = String(recurrence.daysOfMonth[0] || '');
-                    if (inputs[1]) inputs[1].value = String(recurrence.daysOfMonth[1] || '');
-                } else if (recurrence.type === 'Mensual' && recurrence.daysOfMonth) {
+                    if (inputs[0])
+                        inputs[0].value = String(recurrence.daysOfMonth[0] || '');
+                    if (inputs[1])
+                        inputs[1].value = String(recurrence.daysOfMonth[1] || '');
+                }
+                else if (recurrence.type === 'Mensual' && recurrence.daysOfMonth) {
                     detailsContainer.querySelector('input').value = String(recurrence.daysOfMonth[0] || '');
                 }
             }
         }
-
         saveButton.onclick = () => {
             const formData = new FormData(form);
             const name = formData.get('savings-name');
             const amountStr = formData.get('savings-amount');
             const frequencyType = formData.get('savings-frequency');
             const storageType = form.querySelector('input[name="savings-storage-type"]:checked')?.value;
-
             if (!name || !amountStr || !frequencyType) {
                 alert('Por favor, complete Nombre, Monto y Frecuencia.');
                 return;
             }
-             if (!storageType) {
+            if (!storageType) {
                 alert('Por favor, seleccione si el ahorro es en Banco o Personal.');
                 return;
             }
-
             const recurrence = { type: frequencyType };
             if (frequencyType === 'Semanal') {
                 recurrence.dayOfWeek = formData.get('dayOfWeek');
-            } else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
-                recurrence.daysOfMonth = (formData.getAll('daysOfMonth')).map(d => parseInt(d, 10)).filter(d => d > 0);
             }
-
+            else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
+                recurrence.daysOfMonth = formData.getAll('daysOfMonth').map(d => parseInt(d, 10)).filter(d => d > 0);
+            }
             const newRecord = {
                 id: recordId || `sav-${Date.now()}`,
                 type: type,
@@ -322,26 +296,24 @@ export const renderSavingsFormView = (
                 accountType: storageType === 'Banco' ? formData.get('savings-account-type') : undefined,
                 goalAmount: parseCurrency(formData.get('savings-goal-amount')) || undefined,
             };
-
             if (isEditMode) {
                 const index = appState.savingRecords.findIndex(rec => rec.id === recordId);
-                if (index > -1) appState.savingRecords[index] = newRecord;
-            } else {
-                appState.savingRecords.push(newRecord);
+                if (index > -1)
+                    appState.savingRecords[index] = newRecord;
+            }
+            else {
+                appState.savingRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
             saveState(appState);
-
             setTimeout(() => navigate('savingsList'), 500);
         };
     }
-
     if (isEditMode && recordToEdit) {
         nameField.querySelector('input').value = recordToEdit.name;
         amountField.querySelector('input').value = formatCurrency(recordToEdit.amount).replace(/\./g, '').replace(',', ',');
         goalAmountField.querySelector('input').value = formatCurrency(recordToEdit.goalAmount);
         descriptionField.querySelector('textarea').value = recordToEdit.description;
-
         const storageRadio = form.querySelector(`input[name="savings-storage-type"][value="${recordToEdit.storageType}"]`);
         if (storageRadio) {
             storageRadio.checked = true;
@@ -352,7 +324,6 @@ export const renderSavingsFormView = (
             }
         }
     }
-
     form.appendChild(descriptionField);
     container.appendChild(form);
 };
