@@ -1,8 +1,59 @@
 import { appState } from '../../state/store.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { formatRecurrence } from '../../utils/helpers.js';
+import { RecurrenceRule } from '../../types/index.js';
 
 type NavigateFunction = (view: string) => void;
+
+const getNextPaymentDate = (recurrence: RecurrenceRule): Date | null => {
+    if (!recurrence) return null;
+
+    const dayNameToIndex: { [key: string]: number } = {
+        'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+    };
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    switch (recurrence.type) {
+        case 'Diario':
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            return tomorrow;
+
+        case 'Semanal':
+            if (!recurrence.dayOfWeek) return null;
+            const targetDay = dayNameToIndex[recurrence.dayOfWeek];
+            const todayDay = today.getDay();
+            let daysUntilNext = (targetDay - todayDay + 7) % 7;
+            
+            const nextWeeklyDate = new Date(today);
+            nextWeeklyDate.setDate(today.getDate() + daysUntilNext);
+            return nextWeeklyDate;
+
+        case 'Quincenal':
+        case 'Mensual':
+            if (!recurrence.daysOfMonth || recurrence.daysOfMonth.length === 0) return null;
+            
+            const sortedDays = [...recurrence.daysOfMonth].sort((a, b) => a - b);
+            const currentDayOfMonth = today.getDate();
+            const currentMonth = today.getMonth();
+            const currentYear = today.getFullYear();
+
+            let nextDayInMonth = sortedDays.find(day => day >= currentDayOfMonth);
+
+            if (nextDayInMonth) {
+                return new Date(currentYear, currentMonth, nextDayInMonth);
+            } else {
+                const nextMonthDate = new Date(currentYear, currentMonth + 1, 1);
+                const daysInNextMonth = new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth() + 1, 0).getDate();
+                const firstDayOfNextMonth = Math.min(sortedDays[0], daysInNextMonth);
+                return new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), firstDayOfNextMonth);
+            }
+        default:
+            return null;
+    }
+};
 
 const createDetailItem = (label: string, value: string | number) => {
     const item = document.createElement('div');
@@ -49,10 +100,6 @@ export const renderExpenseDetailsView = (container: HTMLElement, navigate: Navig
         // --- 1. Calculate Stats ---
         const totalAmount = record.amount;
         const itemCount = record.items.length;
-        const averageAmount = totalAmount / itemCount;
-        const amounts = record.items.map(item => item.amount);
-        const maxAmount = Math.max(...amounts);
-        const minAmount = Math.min(...amounts);
 
         // --- 2. Render Summary ---
         const detailsContainer = document.createElement('div');
@@ -62,9 +109,6 @@ export const renderExpenseDetailsView = (container: HTMLElement, navigate: Navig
         detailsContainer.appendChild(createDetailItem('Tipo de Grupo:', record.type));
         detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(totalAmount, { includeSymbol: true })));
         detailsContainer.appendChild(createDetailItem('Número de Gastos:', itemCount));
-        detailsContainer.appendChild(createDetailItem('Gasto Promedio:', formatCurrency(averageAmount, { includeSymbol: true })));
-        detailsContainer.appendChild(createDetailItem('Gasto Más Alto:', formatCurrency(maxAmount, { includeSymbol: true })));
-        detailsContainer.appendChild(createDetailItem('Gasto Más Bajo:', formatCurrency(minAmount, { includeSymbol: true })));
         container.appendChild(detailsContainer);
     
         // --- 3. Render Items List ---
@@ -85,11 +129,28 @@ export const renderExpenseDetailsView = (container: HTMLElement, navigate: Navig
             const itemCard = document.createElement('div');
             itemCard.className = 'expense-group-item-card';
 
+            let dateInfo = '';
+            if (item.recurrence) {
+                const isCompleted = !item.isInfinite && item.durationInMonths && (item.installmentsPaid ?? 0) >= item.durationInMonths;
+                if(isCompleted) {
+                    dateInfo = 'Completado';
+                } else {
+                    const nextDate = getNextPaymentDate(item.recurrence);
+                    if (nextDate) {
+                        dateInfo = `Próximo pago: ${nextDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
+                    } else {
+                        dateInfo = formatRecurrence(item.recurrence); // fallback
+                    }
+                }
+            } else {
+                dateInfo = item.date || '';
+            }
+
             itemCard.innerHTML = `
                 <div class="item-main-info">
                     <div class="item-name-details">
                         <span class="item-name">${item.name}</span>
-                        <span class="item-date">${item.recurrence ? formatRecurrence(item.recurrence) : (item.date || '')}</span>
+                        <span class="item-date">${dateInfo}</span>
                     </div>
                     <span class="item-amount">${formatCurrency(item.amount, { includeSymbol: true })}</span>
                 </div>
