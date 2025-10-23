@@ -27,6 +27,7 @@ import { renderExpenseDetailsView } from './src/pages/details/ExpenseDetailsView
 import { renderSavingsDetailsView } from './src/pages/details/SavingsDetailsView.js';
 import { renderStatisticsView } from './src/pages/statistics/StatisticsView.js';
 import { renderSettingsView } from './src/pages/settings/SettingsView.js';
+import { renderArchivedListView } from './src/pages/archived/ArchivedListView.js';
 import { IncomeRecord, ExpenseRecord } from './src/types/index.js';
 import { appState, subscribe } from './src/state/store.js';
 import { formatCurrency } from './src/utils/currency.js';
@@ -49,7 +50,8 @@ type ViewType =
     | 'savingsForm'
     | 'incomeDetails'
     | 'expenseDetails'
-    | 'savingsDetails';
+    | 'savingsDetails'
+    | 'archivedList';
 
 type StatsPanelViewType = 'statistics' | 'settings';
 
@@ -310,7 +312,18 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
              ${currentMonthPayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios (semanal, quincenal, mensual) para un resumen detallado por períodos.</p>' : ''}
              ${currentMonthPayDays.length > 0 && periods.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">No hay ingresos para los períodos de pago actuales.</p>' : ''}
         </div>
+        <div class="filter-card nav-button-card" id="nav-archived-card">
+            <h3 class="filter-card-title">Archivado</h3>
+            <span class="nav-button-arrow">&rarr;</span>
+        </div>
     `;
+
+    const archivedCard = panel.querySelector('#nav-archived-card');
+    archivedCard?.addEventListener('click', () => {
+        navigate('archivedList');
+        mainLayout?.classList.remove('nav-open');
+        document.body.classList.remove('no-scroll');
+    });
 };
 
 const navigateToStatsPanel = (view: StatsPanelViewType) => {
@@ -362,6 +375,9 @@ const renderCurrentView = () => {
             break;
         case 'savingsDetails':
             if (recordId) renderSavingsDetailsView(viewContainers.savingsDetails, navigateTo, recordId);
+            break;
+        case 'archivedList':
+            renderArchivedListView(viewContainers.archived, navigateTo);
             break;
     }
 };
@@ -446,6 +462,7 @@ if (root && mainAppTitle && statsPanel && navPanel) {
     createViewContainer('incomeDetails');
     createViewContainer('expenseDetails');
     createViewContainer('savingsDetails');
+    createViewContainer('archived');
 
     // Subscription to automatically refresh UI on state changes
     subscribe(() => {

@@ -62,9 +62,15 @@ export interface UserProfile {
     currency?: string;
 }
 
+export type ArchivedRecord = (IncomeRecord | ExpenseRecord | SavingRecord) & {
+    archivedAt: number;
+    originalType: 'income' | 'expense' | 'saving';
+};
+
 export interface AppState {
     userProfile: UserProfile;
     incomeRecords: IncomeRecord[];
     expenseRecords: ExpenseRecord[];
     savingRecords: SavingRecord[];
+    archivedRecords: ArchivedRecord[];
 }

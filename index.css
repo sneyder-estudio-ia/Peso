@@ -146,6 +146,14 @@ body.no-scroll {
     transform: scale(0.98);
 }
 
+.btn:disabled {
+    background-color: #21262d;
+    color: #8b949e;
+    cursor: not-allowed;
+    filter: none;
+    border: 1px solid #30363d;
+}
+
 .btn.btn-income {
     background-color: #238636;
 }
@@ -182,6 +190,13 @@ body.no-scroll {
     border: 1px solid #30363d;
     padding: 5px 15px;
     font-size: 0.9rem;
+}
+
+.btn.btn-delete-history {
+    padding: 5px 15px;
+    font-size: 0.9rem;
+    margin-left: auto;
+    margin-right: 10px;
 }
 
 .search-input {
@@ -403,7 +418,8 @@ textarea.form-input {
 /* --- Income Record Card --- */
 #income-list-container,
 #expense-list-container,
-#savings-list-container {
+#savings-list-container,
+#archived-list-container {
     display: flex;
     flex-direction: column;
     gap: 15px;
@@ -493,6 +509,10 @@ textarea.form-input {
 
 .btn-edit:hover {
     color: #388bfd;
+}
+
+.archived-record-card .btn-edit:hover {
+    color: #3fb950; /* Restore button hover is green */
 }
 
 .btn-delete {
@@ -1048,4 +1068,32 @@ textarea.form-input {
 .collapse-icon {
     font-size: 1.2rem;
     color: #8b949e;
+}
+
+/* --- Nav Button Card --- */
+.nav-button-card {
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-button-card:hover {
+    background-color: #21262d;
+}
+
+.nav-button-card .filter-card-title {
+    margin-bottom: 0;
+}
+
+.nav-button-arrow {
+    font-size: 1.5rem;
+    color: #8b949e;
+    transition: transform 0.2s ease;
+}
+
+.nav-button-card:hover .nav-button-arrow {
+    transform: translateX(5px);
 }

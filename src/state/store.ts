@@ -30,7 +30,7 @@ export const loadState = (): AppState => {
     try {
         const serializedState = localStorage.getItem(STORAGE_KEY);
         if (serializedState === null) {
-            return { userProfile: { currency: 'USD' }, incomeRecords: [], expenseRecords: [], savingRecords: [] }; // Return initial state if nothing is stored
+            return { userProfile: { currency: 'USD' }, incomeRecords: [], expenseRecords: [], savingRecords: [], archivedRecords: [] }; // Return initial state if nothing is stored
         }
         const state = JSON.parse(serializedState);
         
@@ -44,10 +44,11 @@ export const loadState = (): AppState => {
             incomeRecords: state.incomeRecords || [],
             expenseRecords: state.expenseRecords || [],
             savingRecords: state.savingRecords || [],
+            archivedRecords: state.archivedRecords || [],
         };
     } catch (error) {
         console.error("Error loading state from localStorage", error);
-        return { userProfile: { currency: 'USD' }, incomeRecords: [], expenseRecords: [], savingRecords: [] }; // Return initial state on error
+        return { userProfile: { currency: 'USD' }, incomeRecords: [], expenseRecords: [], savingRecords: [], archivedRecords: [] }; // Return initial state on error
     }
 };
 
