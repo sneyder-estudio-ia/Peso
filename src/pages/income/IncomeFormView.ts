@@ -94,7 +94,7 @@ export const renderIncomeFormView = (
             (dateField.querySelector('input') as HTMLInputElement).value = recordToEdit.date;
         }
         
-        saveButton.onclick = () => {
+        saveButton.onclick = async () => {
             const formData = new FormData(form);
             const name = formData.get('income-name') as string;
             const amountStr = formData.get('income-amount') as string;
@@ -121,10 +121,11 @@ export const renderIncomeFormView = (
             } else {
                 appState.incomeRecords.unshift(newRecord);
             }
+            
+            await saveState(appState);
             showToast(isEditMode ? 'Éxito: Ingreso actualizado' : 'Éxito: Ingreso guardado');
-            saveState(appState);
 
-            setTimeout(() => navigate('incomeList'), 500);
+            setTimeout(() => navigate('incomeList'), 100);
         };
     } else if (type === 'Recurrente') {
         const frequencyGroup = document.createElement('div');
@@ -224,7 +225,7 @@ export const renderIncomeFormView = (
             }
         }
 
-        saveButton.onclick = () => {
+        saveButton.onclick = async () => {
             const formData = new FormData(form);
             const name = formData.get('income-name') as string;
             const amountStr = formData.get('income-amount') as string;
@@ -258,10 +259,11 @@ export const renderIncomeFormView = (
             } else {
                 appState.incomeRecords.unshift(newRecord);
             }
+            
+            await saveState(appState);
             showToast(isEditMode ? 'Éxito: Ingreso actualizado' : 'Éxito: Ingreso guardado');
-            saveState(appState);
 
-            setTimeout(() => navigate('incomeList'), 500);
+            setTimeout(() => navigate('incomeList'), 100);
         };
     }
 

@@ -558,7 +558,7 @@ export const renderExpenseFormView = (
     };
 
 
-    const handleSave = () => {
+    const handleSave = async () => {
         const form = document.getElementById('register-expense-form') as HTMLFormElement;
     
         if (isMultipleMode) {
@@ -737,8 +737,8 @@ export const renderExpenseFormView = (
             showToast(isEditMode ? 'Éxito: Gasto actualizado' : 'Éxito: Gasto guardado');
         }
 
-        saveState(appState);
-        setTimeout(() => navigate('expenseList'), 500);
+        await saveState(appState);
+        setTimeout(() => navigate('expenseList'), 100);
     };
 
     render(); // Initial call

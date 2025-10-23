@@ -3,7 +3,7 @@ import { formatRecurrence } from '../utils/helpers.js';
 import { appState, saveState } from '../state/store.js';
 import { showConfirmationModal } from './common.js';
 import { showToast } from './Toast.js';
-const restoreRecord = (recordId) => {
+const restoreRecord = async (recordId) => {
     const recordIndex = appState.archivedRecords.findIndex(rec => rec.id === recordId);
     if (recordIndex === -1)
         return;
@@ -23,21 +23,21 @@ const restoreRecord = (recordId) => {
             appState.savingRecords.push(recordToRestore);
             break;
     }
-    saveState(appState);
+    await saveState(appState);
     showToast('Registro restaurado.');
 };
 const deleteRecordPermanently = (recordId) => {
-    showConfirmationModal('Borrado Permanente', 'Esta acción es irreversible y borrará el registro para siempre. ¿Estás seguro?', () => {
+    showConfirmationModal('Borrado Permanente', 'Esta acción es irreversible y borrará el registro para siempre. ¿Estás seguro?', async () => {
         const recordIndex = appState.archivedRecords.findIndex(rec => rec.id === recordId);
         if (recordIndex > -1) {
             appState.archivedRecords.splice(recordIndex, 1);
-            saveState(appState);
+            await saveState(appState);
             showToast('Registro borrado permanentemente.');
         }
     });
 };
 const deleteIncomeRecord = (id) => {
-    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
+    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', async () => {
         const recordIndex = appState.incomeRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
             const removedItems = appState.incomeRecords.splice(recordIndex, 1);
@@ -48,14 +48,14 @@ const deleteIncomeRecord = (id) => {
                     archivedAt: Date.now(),
                     originalType: 'income'
                 });
-                saveState(appState);
+                await saveState(appState);
                 showToast('Registro movido a la papelera.');
             }
         }
     });
 };
 const deleteExpenseRecord = (id) => {
-    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
+    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', async () => {
         const recordIndex = appState.expenseRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
             const removedItems = appState.expenseRecords.splice(recordIndex, 1);
@@ -66,14 +66,14 @@ const deleteExpenseRecord = (id) => {
                     archivedAt: Date.now(),
                     originalType: 'expense'
                 });
-                saveState(appState);
+                await saveState(appState);
                 showToast('Registro movido a la papelera.');
             }
         }
     });
 };
 const deleteSavingRecord = (id) => {
-    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
+    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', async () => {
         const recordIndex = appState.savingRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
             const removedItems = appState.savingRecords.splice(recordIndex, 1);
@@ -84,7 +84,7 @@ const deleteSavingRecord = (id) => {
                     archivedAt: Date.now(),
                     originalType: 'saving'
                 });
-                saveState(appState);
+                await saveState(appState);
                 showToast('Registro movido a la papelera.');
             }
         }

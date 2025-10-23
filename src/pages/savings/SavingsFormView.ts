@@ -163,7 +163,7 @@ export const renderSavingsFormView = (
             (dateField.querySelector('input') as HTMLInputElement).value = recordToEdit.date;
         }
         
-        saveButton.onclick = () => {
+        saveButton.onclick = async () => {
             const formData = new FormData(form);
             const name = formData.get('savings-name') as string;
             const amountStr = formData.get('savings-amount') as string;
@@ -198,10 +198,11 @@ export const renderSavingsFormView = (
             } else {
                 appState.savingRecords.unshift(newRecord);
             }
+            
+            await saveState(appState);
             showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
-            saveState(appState);
 
-            setTimeout(() => navigate('savingsList'), 500);
+            setTimeout(() => navigate('savingsList'), 100);
         };
     } else if (type === 'Recurrente') {
         const frequencyGroup = document.createElement('div');
@@ -290,7 +291,7 @@ export const renderSavingsFormView = (
             }
         }
 
-        saveButton.onclick = () => {
+        saveButton.onclick = async () => {
             const formData = new FormData(form);
             const name = formData.get('savings-name') as string;
             const amountStr = formData.get('savings-amount') as string;
@@ -332,10 +333,11 @@ export const renderSavingsFormView = (
             } else {
                 appState.savingRecords.unshift(newRecord);
             }
-            showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
-            saveState(appState);
 
-            setTimeout(() => navigate('savingsList'), 500);
+            await saveState(appState);
+            showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
+
+            setTimeout(() => navigate('savingsList'), 100);
         };
     }
 

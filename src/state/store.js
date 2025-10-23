@@ -1,4 +1,6 @@
-const STORAGE_KEY = 'pesoAppData';
+import { supabaseClient } from '../services/supabase.js';
+const TABLE_NAME = 'app_data';
+const ROW_ID = 1;
 let listeners = [];
 export const subscribe = (callback) => {
     listeners.push(callback);
@@ -10,38 +12,51 @@ export const subscribe = (callback) => {
 const notify = () => {
     listeners.forEach(callback => callback());
 };
-export const saveState = (state) => {
+export const saveState = async (state) => {
     try {
-        const serializedState = JSON.stringify(state);
-        localStorage.setItem(STORAGE_KEY, serializedState);
+        const { error } = await supabaseClient
+            .from(TABLE_NAME)
+            .upsert({ id: ROW_ID, data: state }, { onConflict: 'id' });
+        if (error) {
+            throw error;
+        }
         notify();
     }
     catch (error) {
-        console.error("Error saving state to localStorage", error);
+        console.error("Error saving state to Supabase", error);
     }
 };
-export const loadState = () => {
+const getInitialState = () => ({
+    userProfile: { currency: 'USD' },
+    incomeRecords: [],
+    expenseRecords: [],
+    savingRecords: [],
+    archivedRecords: [],
+});
+export let appState = getInitialState();
+export const initializeAppState = async () => {
     try {
-        const serializedState = localStorage.getItem(STORAGE_KEY);
-        if (serializedState === null) {
-            return { userProfile: { currency: 'USD' }, incomeRecords: [], expenseRecords: [], savingRecords: [], archivedRecords: [] }; // Return initial state if nothing is stored
+        const { data, error } = await supabaseClient
+            .from(TABLE_NAME)
+            .select('data')
+            .eq('id', ROW_ID)
+            .single();
+        if (error && error.code !== 'PGRST116') { // PGRST116: "Row not found"
+            throw error;
         }
-        const state = JSON.parse(serializedState);
-        const userProfile = state.userProfile || {};
-        if (!userProfile.currency) {
-            userProfile.currency = 'USD'; // Default currency
+        if (data && data.data) {
+            const loadedState = data.data;
+            appState.userProfile = loadedState.userProfile || getInitialState().userProfile;
+            appState.incomeRecords = loadedState.incomeRecords || [];
+            appState.expenseRecords = loadedState.expenseRecords || [];
+            appState.savingRecords = loadedState.savingRecords || [];
+            appState.archivedRecords = loadedState.archivedRecords || [];
         }
-        return {
-            userProfile: userProfile,
-            incomeRecords: state.incomeRecords || [],
-            expenseRecords: state.expenseRecords || [],
-            savingRecords: state.savingRecords || [],
-            archivedRecords: state.archivedRecords || [],
-        };
+        // If no data, appState already has the initial state.
+        notify(); // Notify to render with loaded or initial state
     }
     catch (error) {
-        console.error("Error loading state from localStorage", error);
-        return { userProfile: { currency: 'USD' }, incomeRecords: [], expenseRecords: [], savingRecords: [], archivedRecords: [] }; // Return initial state on error
+        console.error("Error loading state from Supabase", error);
+        // appState will retain its initial value
     }
 };
-export let appState = loadState();

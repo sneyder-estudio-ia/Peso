@@ -70,8 +70,7 @@ export interface UserProfile {
     lastName?: string;
     salaries?: Salary[];
     cloudSyncEmail?: string;
-    // FIX: Updated type literals to match values used in the settings UI, fixing type errors.
-    cloudSyncFrequency?: 'Nunca' | 'Cada 6 horas' | 'Cada 24 horas' | 'Cada mes';
+    cloudSyncFrequency?: 'Siempre' | 'Cada hora';
     currency?: string;
 }
 

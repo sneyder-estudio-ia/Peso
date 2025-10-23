@@ -3,9 +3,7 @@ import { appState, saveState } from '../../state/store.js';
 import { showToast } from '../../components/Toast.js';
 import { formatCurrency, parseCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
 import { formatRecurrence } from '../../utils/helpers.js';
-
 let salariesListContainer = null;
-
 const createFormField = (labelText, inputType, inputId, name, placeholder = '') => {
     const group = document.createElement('div');
     group.className = 'form-group';
@@ -14,15 +12,14 @@ const createFormField = (labelText, inputType, inputId, name, placeholder = '') 
     label.htmlFor = inputId;
     label.textContent = labelText;
     const input = document.createElement('input');
-
     if (inputType === 'number') {
         input.type = 'text';
         input.inputMode = 'decimal';
         input.addEventListener('input', handleNumericInputFormatting);
-    } else {
+    }
+    else {
         input.type = inputType;
     }
-    
     input.id = inputId;
     input.name = name;
     input.className = 'form-input';
@@ -31,13 +28,11 @@ const createFormField = (labelText, inputType, inputId, name, placeholder = '') 
     group.appendChild(input);
     return group;
 };
-
 const renderSalariesList = () => {
-    if (!salariesListContainer) return;
+    if (!salariesListContainer)
+        return;
     salariesListContainer.innerHTML = '';
-
     const salaries = appState.userProfile.salaries || [];
-
     if (salaries.length === 0) {
         const emptyMessage = document.createElement('p');
         emptyMessage.className = 'empty-list-message';
@@ -45,53 +40,39 @@ const renderSalariesList = () => {
         salariesListContainer.appendChild(emptyMessage);
         return;
     }
-
     salaries.forEach(salary => {
         const card = createSalaryCard(salary);
         salariesListContainer.appendChild(card);
     });
 };
-
 const deleteSalary = (salaryId) => {
-    showConfirmationModal(
-        'Confirmar Borrado de Salario',
-        '¿Estás seguro de que quieres borrar este salario? Esto también eliminará permanentemente el registro de ingreso recurrente asociado. Esta acción no se puede deshacer.',
-        () => {
-            appState.userProfile.salaries = (appState.userProfile.salaries || []).filter(s => s.id !== salaryId);
-            // Also delete the corresponding income record
-            appState.incomeRecords = appState.incomeRecords.filter(rec => rec.salaryId !== salaryId);
-
-            saveState(appState);
-            showToast('Salario borrado con éxito.');
-        }
-    );
+    showConfirmationModal('Confirmar Borrado de Salario', '¿Estás seguro de que quieres borrar este salario? Esto también eliminará permanentemente el registro de ingreso recurrente asociado. Esta acción no se puede deshacer.', async () => {
+        appState.userProfile.salaries = (appState.userProfile.salaries || []).filter(s => s.id !== salaryId);
+        // Also delete the corresponding income record
+        appState.incomeRecords = appState.incomeRecords.filter(rec => rec.salaryId !== salaryId);
+        await saveState(appState);
+        showToast('Salario borrado con éxito.');
+    });
 };
-
 const openSalaryModal = (salaryId) => {
     const isEditMode = !!salaryId;
     const salaryToEdit = isEditMode ? appState.userProfile.salaries?.find(s => s.id === salaryId) : null;
-
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'modal-overlay';
     modalOverlay.style.display = 'flex';
-
     const modalContent = document.createElement('div');
     modalContent.className = 'modal-content';
     modalContent.onclick = e => e.stopPropagation();
-
     const modalTitle = document.createElement('h3');
     modalTitle.className = 'modal-title';
     modalTitle.textContent = isEditMode ? 'Editar Salario' : 'Agregar Salario';
-
     const form = document.createElement('form');
     form.className = 'income-form';
     form.onsubmit = e => e.preventDefault();
-
     const nameField = createFormField('Nombre del Salario', 'text', 'salary-name', 'name', 'Ej: Trabajo Principal');
     const amountField = createFormField('Monto', 'number', 'salary-amount', 'amount', '0');
     form.appendChild(nameField);
     form.appendChild(amountField);
-    
     // Frequency section from income form
     const frequencyGroup = document.createElement('div');
     frequencyGroup.className = 'form-group';
@@ -134,7 +115,8 @@ const openSalaryModal = (salaryId) => {
                 weekSelect.appendChild(opt);
             });
             detailsContainer.appendChild(weekSelect);
-        } else if (target.value === 'Quincenal' || target.value === 'Mensual') {
+        }
+        else if (target.value === 'Quincenal' || target.value === 'Mensual') {
             const numDays = target.value === 'Quincenal' ? 2 : 1;
             for (let i = 1; i <= numDays; i++) {
                 const dayGroup = createFormField(`Día ${i}`, 'number', `dayOfMonth${i}`, 'daysOfMonth');
@@ -148,69 +130,61 @@ const openSalaryModal = (salaryId) => {
     frequencyGroup.appendChild(radioContainer);
     frequencyGroup.appendChild(detailsContainer);
     form.appendChild(frequencyGroup);
-
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'button-container';
-
     const closeModal = () => {
         document.body.classList.remove('no-scroll');
         if (document.body.contains(modalOverlay)) {
             document.body.removeChild(modalOverlay);
         }
     };
-
     modalOverlay.onclick = closeModal;
-
     const saveButton = document.createElement('button');
     saveButton.className = 'btn btn-add';
     saveButton.textContent = 'Guardar';
-    saveButton.onclick = () => {
+    saveButton.onclick = async () => {
         const formData = new FormData(form);
         const name = formData.get('name');
         const amountStr = formData.get('amount');
         const frequencyType = formData.get('salary-frequency');
-
         if (!name || !amountStr || !frequencyType) {
             alert('Por favor, complete todos los campos.');
             return;
         }
-
         const recurrence = { type: frequencyType };
         if (frequencyType === 'Semanal') {
             recurrence.dayOfWeek = formData.get('dayOfWeek');
-        } else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
-            recurrence.daysOfMonth = (formData.getAll('daysOfMonth')).map(d => parseInt(d, 10)).filter(d => d > 0);
         }
-
+        else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
+            recurrence.daysOfMonth = formData.getAll('daysOfMonth').map(d => parseInt(d, 10)).filter(d => d > 0);
+        }
         const newSalary = {
             id: salaryId || `sal-${Date.now()}`,
             name,
             amount: parseCurrency(amountStr),
             recurrence,
         };
-
         if (!appState.userProfile.salaries) {
             appState.userProfile.salaries = [];
         }
-
         if (isEditMode) {
             const index = appState.userProfile.salaries.findIndex(s => s.id === salaryId);
             if (index > -1) {
                 appState.userProfile.salaries[index] = newSalary;
             }
-        } else {
+        }
+        else {
             appState.userProfile.salaries.push(newSalary);
         }
-        
         // Sync with income records
         const correspondingIncome = appState.incomeRecords.find(rec => rec.salaryId === newSalary.id);
-        
         if (correspondingIncome) {
             // Update existing income record
             correspondingIncome.name = newSalary.name;
             correspondingIncome.amount = newSalary.amount;
             correspondingIncome.recurrence = newSalary.recurrence;
-        } else {
+        }
+        else {
             // Create new income record
             const newIncomeRecord = {
                 id: `inc-sal-${newSalary.id}`,
@@ -224,28 +198,22 @@ const openSalaryModal = (salaryId) => {
             };
             appState.incomeRecords.push(newIncomeRecord);
         }
-
-        saveState(appState);
+        await saveState(appState);
         showToast(isEditMode ? 'Salario actualizado' : 'Salario guardado');
         closeModal();
     };
-    
     const cancelButton = document.createElement('button');
     cancelButton.className = 'btn btn-option';
     cancelButton.textContent = 'Cancelar';
     cancelButton.onclick = closeModal;
-
     buttonContainer.appendChild(cancelButton);
     buttonContainer.appendChild(saveButton);
-    
     modalContent.appendChild(modalTitle);
     modalContent.appendChild(form);
     modalContent.appendChild(buttonContainer);
     modalOverlay.appendChild(modalContent);
-
     document.body.classList.add('no-scroll');
     document.body.appendChild(modalOverlay);
-
     // Pre-fill form if editing, otherwise set a default
     if (isEditMode && salaryToEdit) {
         form.querySelector('[name="name"]').value = salaryToEdit.name;
@@ -257,14 +225,16 @@ const openSalaryModal = (salaryId) => {
             const rec = salaryToEdit.recurrence;
             if (rec.type === 'Semanal' && rec.dayOfWeek) {
                 detailsContainer.querySelector('select').value = rec.dayOfWeek;
-            } else if ((rec.type === 'Quincenal' || rec.type === 'Mensual') && rec.daysOfMonth) {
+            }
+            else if ((rec.type === 'Quincenal' || rec.type === 'Mensual') && rec.daysOfMonth) {
                 const inputs = detailsContainer.querySelectorAll('input[name="daysOfMonth"]');
                 inputs.forEach((input, index) => {
                     input.value = String(rec.daysOfMonth[index] || '');
                 });
             }
         }
-    } else {
+    }
+    else {
         // Set a default for new entries
         const defaultFrequencyRadio = form.querySelector('input[name="salary-frequency"][value="Mensual"]');
         if (defaultFrequencyRadio) {
@@ -273,49 +243,34 @@ const openSalaryModal = (salaryId) => {
         }
     }
 };
-
 const createSalaryCard = (salary) => {
     const card = document.createElement('div');
     card.className = 'income-record-card'; // Reuse style
-
     const info = document.createElement('div');
     info.className = 'income-record-info';
-
     const name = document.createElement('span');
     name.className = 'income-record-name';
     name.textContent = salary.name;
-
     const details = document.createElement('span');
     details.className = 'income-record-date'; // Reuse style
     details.textContent = formatRecurrence(salary.recurrence);
-
     info.appendChild(name);
     info.appendChild(details);
-
     const rightContainer = document.createElement('div');
     rightContainer.className = 'income-record-right';
-
     const amount = document.createElement('div');
     amount.className = 'income-record-amount income'; // Reuse style
     amount.textContent = formatCurrency(salary.amount, { includeSymbol: true });
-
     const editButton = document.createElement('button');
     editButton.className = 'btn-edit';
     editButton.innerHTML = '&#x270F;';
     editButton.setAttribute('aria-label', `Editar salario ${salary.name}`);
     editButton.onclick = (e) => {
         e.stopPropagation();
-        showConfirmationModal(
-            'Confirmar Edición',
-            '¿Estás seguro de que quieres editar este salario?',
-            () => {
-                openSalaryModal(salary.id);
-            },
-            'btn-add',
-            'Editar'
-        );
+        showConfirmationModal('Confirmar Edición', '¿Estás seguro de que quieres editar este salario?', () => {
+            openSalaryModal(salary.id);
+        }, 'btn-add', 'Editar');
     };
-
     const deleteButton = document.createElement('button');
     deleteButton.className = 'btn-delete';
     deleteButton.innerHTML = '&#x1F5D1;';
@@ -324,20 +279,15 @@ const createSalaryCard = (salary) => {
         e.stopPropagation();
         deleteSalary(salary.id);
     };
-
     rightContainer.appendChild(amount);
     rightContainer.appendChild(editButton);
     rightContainer.appendChild(deleteButton);
-
     card.appendChild(info);
     card.appendChild(rightContainer);
-
     return card;
 };
-
 export const renderSettingsView = (container, navigate, mainNavigate) => {
     container.innerHTML = '';
-
     const titleContainer = document.createElement('div');
     titleContainer.className = 'stats-title-container';
     const title = document.createElement('h2');
@@ -351,38 +301,32 @@ export const renderSettingsView = (container, navigate, mainNavigate) => {
     titleContainer.appendChild(title);
     titleContainer.appendChild(backButton);
     container.appendChild(titleContainer);
-
     const profileSection = document.createElement('div');
     profileSection.className = 'stats-section';
     const profileCard = createSimpleCard('Perfil de Usuario');
-    
     const profileForm = document.createElement('form');
     profileForm.className = 'income-form';
     profileForm.style.marginTop = '15px';
     profileForm.onsubmit = (e) => e.preventDefault();
-    
     const firstNameField = createFormField('Nombre', 'text', 'user-firstname', 'firstName');
     const lastNameField = createFormField('Apellido', 'text', 'user-lastname', 'lastName');
-    
     const saveProfileButton = document.createElement('button');
     saveProfileButton.textContent = 'Guardar Perfil';
     saveProfileButton.className = 'btn btn-add';
     saveProfileButton.style.width = '100%';
     saveProfileButton.style.marginTop = '20px';
-    saveProfileButton.onclick = () => {
+    saveProfileButton.onclick = async () => {
         appState.userProfile.firstName = profileForm.querySelector('#user-firstname').value;
         appState.userProfile.lastName = profileForm.querySelector('#user-lastname').value;
-        saveState(appState);
+        await saveState(appState);
         showToast('Perfil guardado con éxito');
     };
-
     profileForm.appendChild(firstNameField);
     profileForm.appendChild(lastNameField);
     profileForm.appendChild(saveProfileButton);
     profileCard.appendChild(profileForm);
     profileSection.appendChild(profileCard);
     container.appendChild(profileSection);
-
     // --- Currency Section ---
     const currencySection = document.createElement('div');
     currencySection.className = 'stats-section';
@@ -391,19 +335,16 @@ export const renderSettingsView = (container, navigate, mainNavigate) => {
     currencyForm.className = 'income-form';
     currencyForm.style.marginTop = '15px';
     currencyForm.onsubmit = e => e.preventDefault();
-
     const currencyGroup = document.createElement('div');
     currencyGroup.className = 'form-group';
     const currencyLabel = document.createElement('label');
     currencyLabel.className = 'form-label';
     currencyLabel.htmlFor = 'user-currency';
     currencyLabel.textContent = 'Seleccione su moneda';
-    
     const currencySelect = document.createElement('select');
     currencySelect.id = 'user-currency';
     currencySelect.name = 'currency';
     currencySelect.className = 'form-input';
-
     const currencies = {
         USD: 'Dólar estadounidense (USD)',
         GTQ: 'Quetzal guatemalteco (GTQ)',
@@ -413,53 +354,39 @@ export const renderSettingsView = (container, navigate, mainNavigate) => {
         PAB: 'Balboa panameño (PAB)',
         BZD: 'Dólar beliceño (BZD)',
     };
-
     for (const code in currencies) {
         const option = document.createElement('option');
         option.value = code;
         option.textContent = currencies[code];
         currencySelect.appendChild(option);
     }
-    
     currencyGroup.appendChild(currencyLabel);
     currencyGroup.appendChild(currencySelect);
-
     const saveCurrencyButton = document.createElement('button');
     saveCurrencyButton.textContent = 'Guardar Moneda';
     saveCurrencyButton.className = 'btn btn-add';
     saveCurrencyButton.style.width = '100%';
     saveCurrencyButton.style.marginTop = '20px';
-    saveCurrencyButton.onclick = () => {
+    saveCurrencyButton.onclick = async () => {
         const selectedCurrency = currencyForm.querySelector('#user-currency').value;
         appState.userProfile.currency = selectedCurrency;
-        saveState(appState);
+        await saveState(appState);
         showToast('Moneda guardada. Actualizando vista...');
-        
-        // Re-render the main dashboard and the stats panel to reflect currency changes
-        setTimeout(() => {
-            mainNavigate('dashboard', {});
-            navigate('settings'); // Re-render settings to show correct selection
-        }, 500);
     };
-    
     currencyForm.appendChild(currencyGroup);
     currencyForm.appendChild(saveCurrencyButton);
     currencyCard.appendChild(currencyForm);
     currencySection.appendChild(currencyCard);
     container.appendChild(currencySection);
-
     // --- Cloud Sync Section ---
     const syncSection = document.createElement('div');
     syncSection.className = 'stats-section';
-    const syncCard = createSimpleCard('Sincronización en la Nube');
-
+    const syncCard = createSimpleCard('Sincronización Supabase');
     const syncForm = document.createElement('form');
     syncForm.className = 'income-form';
     syncForm.style.marginTop = '15px';
     syncForm.onsubmit = (e) => e.preventDefault();
-
     const emailField = createFormField('Correo Electrónico', 'email', 'user-sync-email', 'syncEmail', 'tu.correo@ejemplo.com');
-    
     const frequencyGroup = document.createElement('div');
     frequencyGroup.className = 'form-group';
     const frequencyLabel = document.createElement('label');
@@ -470,37 +397,34 @@ export const renderSettingsView = (container, navigate, mainNavigate) => {
     frequencySelect.id = 'user-sync-frequency';
     frequencySelect.name = 'syncFrequency';
     frequencySelect.className = 'form-input';
-    const frequencies = ['Nunca', 'Cada 6 horas', 'Cada 24 horas', 'Cada mes'];
+    const frequencies = ['Siempre', 'Cada hora'];
     frequencies.forEach(freq => {
         const option = document.createElement('option');
-        option.value = freq || 'Nunca';
-        option.textContent = freq || 'Nunca';
+        option.value = freq;
+        option.textContent = freq;
         frequencySelect.appendChild(option);
     });
     frequencyGroup.appendChild(frequencyLabel);
     frequencyGroup.appendChild(frequencySelect);
-    
     const saveSyncButton = document.createElement('button');
     saveSyncButton.textContent = 'Guardar Ajustes de Sincronización';
     saveSyncButton.className = 'btn btn-add';
     saveSyncButton.style.width = '100%';
     saveSyncButton.style.marginTop = '20px';
-    saveSyncButton.onclick = () => {
+    saveSyncButton.onclick = async () => {
         const email = syncForm.querySelector('#user-sync-email').value;
         const frequency = syncForm.querySelector('#user-sync-frequency').value;
         appState.userProfile.cloudSyncEmail = email;
         appState.userProfile.cloudSyncFrequency = frequency;
-        saveState(appState);
+        await saveState(appState);
         showToast('Ajustes de sincronización guardados.');
     };
-
     syncForm.appendChild(emailField);
     syncForm.appendChild(frequencyGroup);
     syncForm.appendChild(saveSyncButton);
     syncCard.appendChild(syncForm);
     syncSection.appendChild(syncCard);
     container.appendChild(syncSection);
-
     // --- Salaries Section ---
     const salariesSection = document.createElement('div');
     salariesSection.className = 'stats-section';
@@ -508,13 +432,11 @@ export const renderSettingsView = (container, navigate, mainNavigate) => {
     const salaryForm = document.createElement('div');
     salaryForm.className = 'income-form';
     salaryForm.style.marginTop = '15px';
-
     const salaryLabelContainer = document.createElement('div');
     salaryLabelContainer.className = 'form-label-container';
     const salaryLabel = document.createElement('label');
     salaryLabel.className = 'form-label';
     salaryLabel.textContent = 'Gestionar Salario';
-    
     salaryLabelContainer.appendChild(salaryLabel);
     if ((appState.userProfile.salaries || []).length === 0) {
         const addSalaryButton = document.createElement('button');
@@ -525,17 +447,14 @@ export const renderSettingsView = (container, navigate, mainNavigate) => {
         addSalaryButton.onclick = () => openSalaryModal();
         salaryLabelContainer.appendChild(addSalaryButton);
     }
-    
     salariesListContainer = document.createElement('div');
     salariesListContainer.id = 'salaries-list-container';
     salariesListContainer.style.marginTop = '15px';
-    
     salaryForm.appendChild(salaryLabelContainer);
     salaryForm.appendChild(salariesListContainer);
     salariesCard.appendChild(salaryForm);
     salariesSection.appendChild(salariesCard);
     container.appendChild(salariesSection);
-    
     // Load existing profile data
     const currentUserProfile = appState.userProfile;
     if (currentUserProfile) {
@@ -543,41 +462,28 @@ export const renderSettingsView = (container, navigate, mainNavigate) => {
         lastNameField.querySelector('input').value = currentUserProfile.lastName || '';
         currencySelect.value = currentUserProfile.currency || 'USD';
         emailField.querySelector('input').value = currentUserProfile.cloudSyncEmail || '';
-        frequencySelect.value = currentUserProfile.cloudSyncFrequency || 'Nunca';
+        frequencySelect.value = currentUserProfile.cloudSyncFrequency || 'Siempre';
     }
-    
     // Initial render of salaries
     renderSalariesList();
-
     // --- Data Management Section ---
     const dataSection = document.createElement('div');
     dataSection.className = 'stats-section';
     const dataCard = createSimpleCard('Gestión de Datos');
-
     const deleteAllButton = document.createElement('button');
     deleteAllButton.textContent = 'Borrar Todos los Datos';
     deleteAllButton.className = 'btn btn-expense';
     deleteAllButton.style.width = '100%';
     deleteAllButton.style.marginTop = '15px';
     deleteAllButton.onclick = () => {
-        showConfirmationModal(
-            'Confirmar Borrado Total',
-            'Estás a punto de borrar permanentemente todos los registros de ingresos, gastos y ahorros. Tu perfil de usuario no será modificado. ¿Deseas continuar? Esta acción no se puede deshacer.',
-            () => {
-                appState.incomeRecords = [];
-                appState.expenseRecords = [];
-                appState.savingRecords = [];
-                saveState(appState);
-                showToast('Todos los registros han sido borrados.');
-                
-                setTimeout(() => {
-                    mainNavigate('dashboard', {});
-                    navigate('statistics');
-                }, 1000);
-            }
-        );
+        showConfirmationModal('Confirmar Borrado Total', 'Estás a punto de borrar permanentemente todos los registros de ingresos, gastos y ahorros. Tu perfil de usuario no será modificado. ¿Deseas continuar? Esta acción no se puede deshacer.', async () => {
+            appState.incomeRecords = [];
+            appState.expenseRecords = [];
+            appState.savingRecords = [];
+            await saveState(appState);
+            showToast('Todos los registros han sido borrados.');
+        });
     };
-
     dataCard.appendChild(deleteAllButton);
     dataSection.appendChild(dataCard);
     container.appendChild(dataSection);

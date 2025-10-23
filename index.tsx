@@ -29,7 +29,7 @@ import { renderStatisticsView } from './src/pages/statistics/StatisticsView.js';
 import { renderSettingsView } from './src/pages/settings/SettingsView.js';
 import { renderArchivedListView } from './src/pages/archived/ArchivedListView.js';
 import { IncomeRecord, ExpenseRecord } from './src/types/index.js';
-import { appState, subscribe } from './src/state/store.js';
+import { appState, subscribe, initializeAppState } from './src/state/store.js';
 import { formatCurrency } from './src/utils/currency.js';
 
 const root = document.getElementById('root');
@@ -496,29 +496,35 @@ overlay?.addEventListener('click', () => {
 
 
 // --- Initial App Setup ---
-if (root && mainAppTitle && statsPanel && navPanel) {
-    // Create all view containers on startup
-    createViewContainer('dashboard');
-    createViewContainer('income');
-    createViewContainer('expense');
-    createViewContainer('savings');
-    createViewContainer('incomeForm');
-    createViewContainer('expenseForm');
-    createViewContainer('savingsForm');
-    createViewContainer('incomeDetails');
-    createViewContainer('expenseDetails');
-    createViewContainer('savingsDetails');
-    createViewContainer('archived');
+async function main() {
+    await initializeAppState();
 
-    // Subscription to automatically refresh UI on state changes
-    subscribe(() => {
-        if (navPanel) renderNavPanel(navPanel, navigateTo);
-        navigateToStatsPanel(currentStatsPanelView);
-        renderCurrentView();
-    });
+    if (root && mainAppTitle && statsPanel && navPanel) {
+        // Create all view containers on startup
+        createViewContainer('dashboard');
+        createViewContainer('income');
+        createViewContainer('expense');
+        createViewContainer('savings');
+        createViewContainer('incomeForm');
+        createViewContainer('expenseForm');
+        createViewContainer('savingsForm');
+        createViewContainer('incomeDetails');
+        createViewContainer('expenseDetails');
+        createViewContainer('savingsDetails');
+        createViewContainer('archived');
 
-    // Initial render
-    renderNavPanel(navPanel, navigateTo);
-    navigateTo('dashboard');
-    navigateToStatsPanel('statistics');
+        // Subscription to automatically refresh UI on state changes
+        subscribe(() => {
+            if (navPanel) renderNavPanel(navPanel, navigateTo);
+            navigateToStatsPanel(currentStatsPanelView);
+            renderCurrentView();
+        });
+
+        // Initial render
+        renderNavPanel(navPanel, navigateTo);
+        navigateTo('dashboard');
+        navigateToStatsPanel('statistics');
+    }
 }
+
+main().catch(console.error);

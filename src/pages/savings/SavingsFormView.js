@@ -133,7 +133,7 @@ export const renderSavingsFormView = (container, navigate, type, recordId) => {
         if (isEditMode && recordToEdit && recordToEdit.date) {
             dateField.querySelector('input').value = recordToEdit.date;
         }
-        saveButton.onclick = () => {
+        saveButton.onclick = async () => {
             const formData = new FormData(form);
             const name = formData.get('savings-name');
             const amountStr = formData.get('savings-amount');
@@ -167,9 +167,9 @@ export const renderSavingsFormView = (container, navigate, type, recordId) => {
             else {
                 appState.savingRecords.unshift(newRecord);
             }
+            await saveState(appState);
             showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
-            saveState(appState);
-            setTimeout(() => navigate('savingsList'), 500);
+            setTimeout(() => navigate('savingsList'), 100);
         };
     }
     else if (type === 'Recurrente') {
@@ -263,7 +263,7 @@ export const renderSavingsFormView = (container, navigate, type, recordId) => {
                 }
             }
         }
-        saveButton.onclick = () => {
+        saveButton.onclick = async () => {
             const formData = new FormData(form);
             const name = formData.get('savings-name');
             const amountStr = formData.get('savings-amount');
@@ -304,9 +304,9 @@ export const renderSavingsFormView = (container, navigate, type, recordId) => {
             else {
                 appState.savingRecords.unshift(newRecord);
             }
+            await saveState(appState);
             showToast(isEditMode ? 'Éxito: Ahorro actualizado' : 'Éxito: Ahorro guardado');
-            saveState(appState);
-            setTimeout(() => navigate('savingsList'), 500);
+            setTimeout(() => navigate('savingsList'), 100);
         };
     }
     if (isEditMode && recordToEdit) {

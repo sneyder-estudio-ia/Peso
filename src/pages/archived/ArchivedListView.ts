@@ -73,15 +73,15 @@ export const renderArchivedListView = (container: HTMLElement, navigate: Navigat
                 showConfirmationModal(
                     'Borrado Permanente',
                     `Esta acción es irreversible y borrará los ${selectedRecordIds.size} registros seleccionados. ¿Estás seguro?`,
-                    () => {
+                    async () => {
                         appState.archivedRecords = appState.archivedRecords.filter(
                             record => !selectedRecordIds.has(record.id)
                         );
-                        saveState(appState);
+                        await saveState(appState);
                         showToast(`${selectedRecordIds.size} registro(s) borrado(s).`);
                         selectionModeActive = false;
                         selectedRecordIds.clear();
-                        render();
+                        // The render is triggered by the saveState notification
                     }
                 );
             };

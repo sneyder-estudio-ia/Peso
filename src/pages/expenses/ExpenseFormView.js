@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 import { appState, saveState } from '../../state/store.js';
 import { parseCurrency, formatCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
 import { showToast } from '../../components/Toast.js';
-
 // Helper to create form fields, to avoid repetition
 const createFormField = (labelText, inputType, inputId, placeholder = '') => {
     const formGroup = document.createElement('div');
@@ -31,13 +29,15 @@ const createFormField = (labelText, inputType, inputId, placeholder = '') => {
     if (inputType === 'textarea') {
         input = document.createElement('textarea');
         input.rows = 3;
-    } else {
+    }
+    else {
         input = document.createElement('input');
         if (inputType === 'number') {
             input.type = 'text';
             input.inputMode = 'decimal';
             input.addEventListener('input', handleNumericInputFormatting);
-        } else {
+        }
+        else {
             input.type = inputType;
         }
     }
@@ -49,51 +49,37 @@ const createFormField = (labelText, inputType, inputId, placeholder = '') => {
     formGroup.appendChild(input);
     return formGroup;
 };
-
-export const renderExpenseFormView = (
-    container, 
-    navigate, 
-    type, 
-    recordId,
-) => {
+export const renderExpenseFormView = (container, navigate, type, recordId) => {
     const isEditMode = !!recordId;
     const recordToEdit = isEditMode ? appState.expenseRecords.find(rec => rec.id === recordId) : null;
     let isMultipleMode = false;
     let multipleExpenseEntries = [{ id: Date.now() }];
-
     const render = () => {
         container.innerHTML = ''; // Clear everything on re-render
-
         // --- Header (always present) ---
         const header = document.createElement('div');
         header.className = 'income-page-header';
-
         const backButton = document.createElement('button');
         backButton.className = 'btn btn-back';
         backButton.innerHTML = '&larr; Volver';
         backButton.onclick = () => navigate('expenseList');
-
         const saveButton = document.createElement('button');
         saveButton.className = 'btn btn-add';
         saveButton.textContent = 'Guardar';
         saveButton.onclick = handleSave;
-
         const title = document.createElement('h2');
         title.className = 'card-title';
         title.textContent = isEditMode ? `Editar Gasto (${type})` : `Registro de Gasto (${type})`;
-        
         header.appendChild(backButton);
         header.appendChild(saveButton);
         container.appendChild(header);
         container.appendChild(title);
-
         // --- Form ---
         const form = document.createElement('form');
         form.id = 'register-expense-form';
         form.className = 'income-form';
         form.onsubmit = (e) => e.preventDefault();
         container.appendChild(form);
-
         // --- Checkbox for Multiple Mode (only for new expenses) ---
         if (!isEditMode) {
             const multipleModeGroup = document.createElement('div');
@@ -114,60 +100,54 @@ export const renderExpenseFormView = (
             multipleModeGroup.appendChild(multipleModeLabel);
             form.appendChild(multipleModeGroup);
         }
-
         // --- Conditional Form Rendering ---
         if (isMultipleMode) {
             if (type === 'Único') {
                 renderMultipleUniqueForm(form);
-            } else {
+            }
+            else {
                 renderMultipleRecurrentForm(form);
             }
-        } else {
+        }
+        else {
             if (type === 'Único') {
                 renderSingleUniqueForm(form);
-            } else {
+            }
+            else {
                 renderSingleRecurrentForm(form);
             }
         }
     };
-    
     const renderMultipleUniqueForm = (form) => {
         const groupTitleField = createFormField('Título del Grupo de Gastos', 'text', 'expense-group-title', 'Ej: Gastos de Viaje');
         form.appendChild(groupTitleField);
-    
         const itemsContainer = document.createElement('div');
         itemsContainer.id = 'multiple-items-container';
         itemsContainer.style.display = 'flex';
         itemsContainer.style.flexDirection = 'column';
         itemsContainer.style.gap = '20px';
         form.appendChild(itemsContainer);
-    
         const renderItems = () => {
             // 1. Preserve values before wiping
             const values = new Map();
             itemsContainer.querySelectorAll('input').forEach(input => {
                 values.set(input.id, input.value);
             });
-    
             itemsContainer.innerHTML = ''; // Wipe only the items container
-    
             multipleExpenseEntries.forEach((entry, index) => {
                 const itemWrapper = document.createElement('div');
                 itemWrapper.className = 'frequency-details'; // Reuse style
                 itemWrapper.dataset.id = String(entry.id);
-    
                 const itemHeader = document.createElement('div');
                 itemHeader.style.display = 'flex';
                 itemHeader.style.justifyContent = 'space-between';
                 itemHeader.style.alignItems = 'center';
                 itemHeader.style.marginBottom = '10px';
-                
                 const itemTitle = document.createElement('h4');
                 itemTitle.textContent = `Gasto #${index + 1}`;
                 itemTitle.style.margin = '0';
                 itemTitle.className = 'form-label';
                 itemHeader.appendChild(itemTitle);
-                
                 if (multipleExpenseEntries.length > 1) {
                     const removeButton = document.createElement('button');
                     removeButton.textContent = 'Quitar';
@@ -181,15 +161,12 @@ export const renderExpenseFormView = (
                     };
                     itemHeader.appendChild(removeButton);
                 }
-                
                 itemWrapper.appendChild(itemHeader);
                 itemWrapper.appendChild(createFormField('Nombre del gasto', 'text', `expense-name-${entry.id}`));
                 itemWrapper.appendChild(createFormField('Fecha', 'date', `expense-date-${entry.id}`));
                 itemWrapper.appendChild(createFormField('Monto', 'number', `expense-amount-${entry.id}`, '0'));
-                
                 itemsContainer.appendChild(itemWrapper);
             });
-    
             // 2. Restore values
             values.forEach((value, id) => {
                 const input = itemsContainer.querySelector(`#${id}`);
@@ -198,7 +175,6 @@ export const renderExpenseFormView = (
                 }
             });
         };
-    
         const addAnotherButton = document.createElement('button');
         addAnotherButton.textContent = 'Agregar Otro Gasto';
         addAnotherButton.type = 'button';
@@ -210,38 +186,33 @@ export const renderExpenseFormView = (
             renderItems();
         };
         form.appendChild(addAnotherButton);
-        
         renderItems();
     };
-
     const renderSingleUniqueForm = (form) => {
         const nameField = createFormField('Nombre del gasto', 'text', 'expense-name');
         const categoryField = createFormField('Categoría', 'text', 'expense-category', 'Ej: Comida, Transporte');
         const amountField = createFormField('Monto', 'number', 'expense-amount', '0');
         const dateField = createFormField('Fecha', 'date', 'expense-date');
         const descriptionField = createFormField('Descripción', 'textarea', 'expense-description');
-        
         form.appendChild(nameField);
         form.appendChild(categoryField);
         form.appendChild(amountField);
         form.appendChild(dateField);
         form.appendChild(descriptionField);
-
         if (isEditMode && recordToEdit) {
             nameField.querySelector('input').value = recordToEdit.name;
             categoryField.querySelector('input').value = recordToEdit.category;
             amountField.querySelector('input').value = formatCurrency(recordToEdit.amount);
-            if (recordToEdit.date) dateField.querySelector('input').value = recordToEdit.date;
+            if (recordToEdit.date)
+                dateField.querySelector('input').value = recordToEdit.date;
             descriptionField.querySelector('textarea').value = recordToEdit.description;
         }
     };
-    
     const renderSingleRecurrentForm = (form) => {
         const nameField = createFormField('Nombre del gasto', 'text', 'expense-name');
         const categoryField = createFormField('Categoría', 'text', 'expense-category', 'Ej: Comida, Transporte');
         const descriptionField = createFormField('Descripción', 'textarea', 'expense-description');
         const installmentAmountField = createFormField('Monto de Cuota', 'number', 'expense-amount', '0');
-        
         const isInfiniteGroup = document.createElement('div');
         isInfiniteGroup.className = 'form-group radio-option';
         const isInfiniteCheckbox = document.createElement('input');
@@ -254,11 +225,9 @@ export const renderExpenseFormView = (
         isInfiniteLabel.style.cursor = 'pointer';
         isInfiniteGroup.appendChild(isInfiniteCheckbox);
         isInfiniteGroup.appendChild(isInfiniteLabel);
-
         const totalAmountField = createFormField('Monto Total', 'number', 'expense-total-amount', '0');
         const durationField = createFormField('Duración (meses)', 'number', 'expense-duration', 'Ej: 24');
         const monthsPaidField = createFormField('Meses abonados', 'number', 'expense-months-paid', 'Ej: 3');
-        
         form.appendChild(nameField);
         form.appendChild(categoryField);
         form.appendChild(installmentAmountField);
@@ -266,22 +235,18 @@ export const renderExpenseFormView = (
         form.appendChild(totalAmountField);
         form.appendChild(durationField);
         form.appendChild(monthsPaidField);
-
         const toggleInfiniteFields = (isInfinite) => {
             totalAmountField.style.display = isInfinite ? 'none' : 'flex';
             durationField.style.display = isInfinite ? 'none' : 'flex';
             monthsPaidField.style.display = isInfinite ? 'none' : 'flex';
         };
-
         isInfiniteCheckbox.onchange = () => {
             toggleInfiniteFields(isInfiniteCheckbox.checked);
         };
-        
         if (recordToEdit?.isInfinite) {
             isInfiniteCheckbox.checked = true;
         }
         toggleInfiniteFields(isInfiniteCheckbox.checked);
-
         const frequencyGroup = document.createElement('div');
         frequencyGroup.className = 'form-group';
         const frequencyLabel = document.createElement('label');
@@ -324,14 +289,16 @@ export const renderExpenseFormView = (
                     weekSelect.appendChild(opt);
                 });
                 detailsContainer.appendChild(weekSelect);
-            } else if (target.value === 'Quincenal') {
+            }
+            else if (target.value === 'Quincenal') {
                 const day1Group = createFormField('Día 1', 'number', 'dayOfMonth1', '0');
                 day1Group.querySelector('input').name = 'daysOfMonth';
                 const day2Group = createFormField('Día 2', 'number', 'dayOfMonth2', '0');
                 day2Group.querySelector('input').name = 'daysOfMonth';
                 detailsContainer.appendChild(day1Group);
                 detailsContainer.appendChild(day2Group);
-            } else if (target.value === 'Mensual') {
+            }
+            else if (target.value === 'Mensual') {
                 const dayGroup = createFormField('Día del mes', 'number', 'dayOfMonth1', '0');
                 dayGroup.querySelector('input').name = 'daysOfMonth';
                 detailsContainer.appendChild(dayGroup);
@@ -341,7 +308,6 @@ export const renderExpenseFormView = (
         frequencyGroup.appendChild(detailsContainer);
         form.appendChild(frequencyGroup);
         form.appendChild(descriptionField);
-
         if (isEditMode && recordToEdit) {
             nameField.querySelector('input').value = recordToEdit.name;
             categoryField.querySelector('input').value = recordToEdit.category;
@@ -352,7 +318,6 @@ export const renderExpenseFormView = (
                 durationField.querySelector('input').value = String(recordToEdit.durationInMonths || '');
                 monthsPaidField.querySelector('input').value = String(recordToEdit.installmentsPaid || '');
             }
-
             if (recordToEdit.recurrence) {
                 const freqRadio = form.querySelector(`input[name="expense-frequency"][value="${recordToEdit.recurrence.type}"]`);
                 if (freqRadio) {
@@ -361,29 +326,30 @@ export const renderExpenseFormView = (
                     const recurrence = recordToEdit.recurrence;
                     if (recurrence.type === 'Semanal' && recurrence.dayOfWeek) {
                         detailsContainer.querySelector('select').value = recurrence.dayOfWeek;
-                    } else if (recurrence.type === 'Quincenal' && recurrence.daysOfMonth) {
+                    }
+                    else if (recurrence.type === 'Quincenal' && recurrence.daysOfMonth) {
                         const inputs = detailsContainer.querySelectorAll('input[name="daysOfMonth"]');
-                        if (inputs[0]) inputs[0].value = String(recurrence.daysOfMonth[0] || '');
-                        if (inputs[1]) inputs[1].value = String(recurrence.daysOfMonth[1] || '');
-                    } else if (recurrence.type === 'Mensual' && recurrence.daysOfMonth) {
+                        if (inputs[0])
+                            inputs[0].value = String(recurrence.daysOfMonth[0] || '');
+                        if (inputs[1])
+                            inputs[1].value = String(recurrence.daysOfMonth[1] || '');
+                    }
+                    else if (recurrence.type === 'Mensual' && recurrence.daysOfMonth) {
                         detailsContainer.querySelector('input').value = String(recurrence.daysOfMonth[0] || '');
                     }
                 }
             }
         }
     };
-
     const renderMultipleRecurrentForm = (form) => {
         const groupTitleField = createFormField('Título del Grupo de Gastos', 'text', 'expense-group-title', 'Ej: Suscripciones');
         form.appendChild(groupTitleField);
-    
         const itemsContainer = document.createElement('div');
         itemsContainer.id = 'multiple-items-container';
         itemsContainer.style.display = 'flex';
         itemsContainer.style.flexDirection = 'column';
         itemsContainer.style.gap = '20px';
         form.appendChild(itemsContainer);
-    
         const renderItems = () => {
             // 1. Preserve values
             const values = new Map();
@@ -393,30 +359,26 @@ export const renderExpenseFormView = (
                     if (input.checked) {
                         values.set(input.id, true);
                     }
-                } else {
+                }
+                else {
                     values.set(input.id, input.value);
                 }
             });
-    
             itemsContainer.innerHTML = '';
-    
             multipleExpenseEntries.forEach((entry, index) => {
                 const itemWrapper = document.createElement('div');
                 itemWrapper.className = 'frequency-details';
                 itemWrapper.dataset.id = String(entry.id);
-    
                 const itemHeader = document.createElement('div');
                 itemHeader.style.display = 'flex';
                 itemHeader.style.justifyContent = 'space-between';
                 itemHeader.style.alignItems = 'center';
                 itemHeader.style.marginBottom = '10px';
-                
                 const itemTitle = document.createElement('h4');
                 itemTitle.textContent = `Gasto Recurrente #${index + 1}`;
                 itemTitle.style.margin = '0';
                 itemTitle.className = 'form-label';
                 itemHeader.appendChild(itemTitle);
-    
                 if (multipleExpenseEntries.length > 1) {
                     const removeButton = document.createElement('button');
                     removeButton.textContent = 'Quitar';
@@ -430,11 +392,9 @@ export const renderExpenseFormView = (
                     };
                     itemHeader.appendChild(removeButton);
                 }
-    
                 itemWrapper.appendChild(itemHeader);
                 itemWrapper.appendChild(createFormField('Nombre del gasto', 'text', `expense-name-${entry.id}`));
                 itemWrapper.appendChild(createFormField('Monto de Cuota', 'number', `expense-amount-${entry.id}`, '0'));
-    
                 const isInfiniteGroup = document.createElement('div');
                 isInfiniteGroup.className = 'form-group radio-option';
                 const isInfiniteCheckbox = document.createElement('input');
@@ -447,23 +407,19 @@ export const renderExpenseFormView = (
                 isInfiniteGroup.appendChild(isInfiniteCheckbox);
                 isInfiniteGroup.appendChild(isInfiniteLabel);
                 itemWrapper.appendChild(isInfiniteGroup);
-    
                 const totalAmountField = createFormField('Monto Total', 'number', `expense-total-amount-${entry.id}`, '0');
                 const durationField = createFormField('Duración (meses)', 'number', `expense-duration-${entry.id}`, 'Ej: 24');
                 const monthsPaidField = createFormField('Meses abonados', 'number', `expense-months-paid-${entry.id}`, 'Ej: 3');
                 itemWrapper.appendChild(totalAmountField);
                 itemWrapper.appendChild(durationField);
                 itemWrapper.appendChild(monthsPaidField);
-    
                 const toggleInfiniteFields = (isInfinite) => {
                     totalAmountField.style.display = isInfinite ? 'none' : 'flex';
                     durationField.style.display = isInfinite ? 'none' : 'flex';
                     monthsPaidField.style.display = isInfinite ? 'none' : 'flex';
                 };
-    
                 isInfiniteCheckbox.onchange = () => toggleInfiniteFields(isInfiniteCheckbox.checked);
                 toggleInfiniteFields(false); // Initial state
-                
                 const frequencyGroup = document.createElement('div');
                 frequencyGroup.className = 'form-group';
                 const frequencyLabel = document.createElement('label');
@@ -506,7 +462,8 @@ export const renderExpenseFormView = (
                             weekSelect.appendChild(opt);
                         });
                         detailsContainer.appendChild(weekSelect);
-                    } else if (target.value === 'Quincenal' || target.value === 'Mensual') {
+                    }
+                    else if (target.value === 'Quincenal' || target.value === 'Mensual') {
                         const numDays = target.value === 'Quincenal' ? 2 : 1;
                         for (let i = 1; i <= numDays; i++) {
                             const dayGroup = createFormField(`Día ${i}`, 'number', `dayOfMonth${i}-${entry.id}`, '0');
@@ -518,10 +475,8 @@ export const renderExpenseFormView = (
                 frequencyGroup.appendChild(radioContainer);
                 frequencyGroup.appendChild(detailsContainer);
                 itemWrapper.appendChild(frequencyGroup);
-    
                 itemsContainer.appendChild(itemWrapper);
             });
-    
             // 2. Restore values
             values.forEach((value, id) => {
                 const input = itemsContainer.querySelector(`#${id}`);
@@ -531,13 +486,13 @@ export const renderExpenseFormView = (
                             input.checked = true;
                             input.dispatchEvent(new Event('change', { bubbles: true }));
                         }
-                    } else {
+                    }
+                    else {
                         input.value = value;
                     }
                 }
             });
         };
-    
         const addAnotherButton = document.createElement('button');
         addAnotherButton.textContent = 'Agregar Otro Gasto';
         addAnotherButton.type = 'button';
@@ -549,73 +504,65 @@ export const renderExpenseFormView = (
             renderItems();
         };
         form.appendChild(addAnotherButton);
-        
         renderItems();
     };
-
-
-    const handleSave = () => {
+    const handleSave = async () => {
         const form = document.getElementById('register-expense-form');
-    
         if (isMultipleMode) {
             const groupTitle = form.querySelector('#expense-group-title')?.value;
             if (!groupTitle) {
                 alert('Por favor, ingrese un Título para el grupo de gastos.');
                 return;
             }
-    
             const items = [];
             const itemWrappers = form.querySelectorAll('#multiple-items-container > div');
             let hasError = false;
-    
             itemWrappers.forEach(wrapper => {
                 const id = wrapper.dataset.id;
-                if (!id) return;
-    
+                if (!id)
+                    return;
                 if (type === 'Único') {
                     const name = form.querySelector(`#expense-name-${id}`)?.value;
                     const date = form.querySelector(`#expense-date-${id}`)?.value;
                     const amountStr = form.querySelector(`#expense-amount-${id}`)?.value;
-                    
                     if (!name || !date || !amountStr || parseCurrency(amountStr) === 0) {
                         hasError = true;
-                    } else {
+                    }
+                    else {
                         items.push({
                             name: name,
                             amount: parseCurrency(amountStr),
                             date: date,
                         });
                     }
-                } else { // Recurrente
+                }
+                else { // Recurrente
                     const name = form.querySelector(`#expense-name-${id}`)?.value;
                     const amountStr = form.querySelector(`#expense-amount-${id}`)?.value;
                     const frequencyType = form.querySelector(`input[name="expense-frequency-${id}"]:checked`)?.value;
                     const isInfinite = form.querySelector(`#expense-is-infinite-${id}`)?.checked;
-
                     if (!name || !amountStr || !frequencyType) {
-                        hasError = true; return;
+                        hasError = true;
+                        return;
                     }
-    
                     const recurrence = { type: frequencyType };
                     if (frequencyType === 'Semanal') {
                         recurrence.dayOfWeek = wrapper.querySelector(`select[name="dayOfWeek-${id}"]`)?.value;
-                    } else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
-                        recurrence.daysOfMonth = Array.from(wrapper.querySelectorAll(`input[name="daysOfMonth-${id}"]`))
-                                                    .map(el => parseInt(el.value, 10))
-                                                    .filter(d => d > 0);
                     }
-    
+                    else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
+                        recurrence.daysOfMonth = Array.from(wrapper.querySelectorAll(`input[name="daysOfMonth-${id}"]`))
+                            .map(el => parseInt(el.value, 10))
+                            .filter(d => d > 0);
+                    }
                     const totalAmountStr = form.querySelector(`#expense-total-amount-${id}`)?.value;
                     const durationInMonthsStr = form.querySelector(`#expense-duration-${id}`)?.value;
                     const monthsPaidStr = form.querySelector(`#expense-months-paid-${id}`)?.value;
-
                     if (!isInfinite && (!totalAmountStr || !durationInMonthsStr)) {
-                        hasError = true; return;
+                        hasError = true;
+                        return;
                     }
-
                     const duration = parseInt(durationInMonthsStr, 10);
                     const paid = parseInt(monthsPaidStr, 10);
-    
                     items.push({
                         name: name,
                         amount: parseCurrency(amountStr),
@@ -627,7 +574,6 @@ export const renderExpenseFormView = (
                     });
                 }
             });
-    
             if (hasError) {
                 alert('Por favor, complete todos los campos requeridos (nombre, monto, fecha/frecuencia) para cada gasto.');
                 return;
@@ -636,9 +582,7 @@ export const renderExpenseFormView = (
                 alert('Agregue al menos un gasto válido.');
                 return;
             }
-
             const totalAmountForGroup = items.reduce((sum, item) => sum + item.amount, 0);
-
             const groupRecord = {
                 id: `exp-${Date.now()}`,
                 type: type,
@@ -649,16 +593,14 @@ export const renderExpenseFormView = (
                 isGroup: true,
                 items: items,
             };
-    
             appState.expenseRecords.unshift(groupRecord);
             showToast(`Éxito: Grupo "${groupTitle}" guardado.`);
-
-        } else if (type === 'Único') {
+        }
+        else if (type === 'Único') {
             const formData = new FormData(form);
             const name = formData.get('expense-name');
             const amountStr = formData.get('expense-amount');
             const date = formData.get('expense-date');
-
             if (!name || !amountStr || !date) {
                 alert('Por favor, complete los campos Nombre, Monto y Fecha.');
                 return;
@@ -674,23 +616,23 @@ export const renderExpenseFormView = (
             };
             if (isEditMode) {
                 const index = appState.expenseRecords.findIndex(rec => rec.id === recordId);
-                if (index > -1) appState.expenseRecords[index] = newRecord;
-            } else {
+                if (index > -1)
+                    appState.expenseRecords[index] = newRecord;
+            }
+            else {
                 appState.expenseRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Gasto actualizado' : 'Éxito: Gasto guardado');
-
-        } else { // Recurrente
+        }
+        else { // Recurrente
             const formData = new FormData(form);
             const name = formData.get('expense-name');
             const installmentAmountStr = formData.get('expense-amount');
             const frequencyType = formData.get('expense-frequency');
             const isInfinite = form.querySelector('#expense-is-infinite').checked;
-
             const totalAmountStr = formData.get('expense-total-amount');
             const durationInMonthsStr = formData.get('expense-duration');
             const monthsPaidStr = formData.get('expense-months-paid');
-
             if (!name || !installmentAmountStr || !frequencyType) {
                 alert('Por favor, complete Nombre, Monto de Cuota y Frecuencia.');
                 return;
@@ -699,17 +641,15 @@ export const renderExpenseFormView = (
                 alert('Para un gasto con límite, debe indicar el Monto Total y la Duración.');
                 return;
             }
-
             const recurrence = { type: frequencyType };
             if (frequencyType === 'Semanal') {
                 recurrence.dayOfWeek = formData.get('dayOfWeek');
-            } else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
+            }
+            else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
                 recurrence.daysOfMonth = formData.getAll('daysOfMonth').map(d => parseInt(d, 10)).filter(d => d > 0);
             }
-
             const duration = parseInt(durationInMonthsStr, 10);
             const paid = parseInt(monthsPaidStr, 10);
-
             const newRecord = {
                 id: recordId || `exp-${Date.now()}`,
                 type: 'Recurrente',
@@ -723,19 +663,18 @@ export const renderExpenseFormView = (
                 durationInMonths: isInfinite || isNaN(duration) ? undefined : duration,
                 installmentsPaid: isInfinite || isNaN(paid) ? undefined : paid,
             };
-
             if (isEditMode) {
                 const index = appState.expenseRecords.findIndex(rec => rec.id === recordId);
-                if (index > -1) appState.expenseRecords[index] = newRecord;
-            } else {
+                if (index > -1)
+                    appState.expenseRecords[index] = newRecord;
+            }
+            else {
                 appState.expenseRecords.unshift(newRecord);
             }
             showToast(isEditMode ? 'Éxito: Gasto actualizado' : 'Éxito: Gasto guardado');
         }
-
-        saveState(appState);
-        setTimeout(() => navigate('expenseList'), 500);
+        await saveState(appState);
+        setTimeout(() => navigate('expenseList'), 100);
     };
-
     render(); // Initial call
 };

@@ -60,12 +60,12 @@ const deleteSalary = (salaryId: string) => {
     showConfirmationModal(
         'Confirmar Borrado de Salario',
         '¿Estás seguro de que quieres borrar este salario? Esto también eliminará permanentemente el registro de ingreso recurrente asociado. Esta acción no se puede deshacer.',
-        () => {
+        async () => {
             appState.userProfile.salaries = (appState.userProfile.salaries || []).filter(s => s.id !== salaryId);
             // Also delete the corresponding income record
             appState.incomeRecords = appState.incomeRecords.filter(rec => rec.salaryId !== salaryId);
 
-            saveState(appState);
+            await saveState(appState);
             showToast('Salario borrado con éxito.');
         }
     );
@@ -168,7 +168,7 @@ const openSalaryModal = (salaryId?: string) => {
     const saveButton = document.createElement('button');
     saveButton.className = 'btn btn-add';
     saveButton.textContent = 'Guardar';
-    saveButton.onclick = () => {
+    saveButton.onclick = async () => {
         const formData = new FormData(form);
         const name = formData.get('name') as string;
         const amountStr = formData.get('amount') as string;
@@ -229,7 +229,7 @@ const openSalaryModal = (salaryId?: string) => {
             appState.incomeRecords.push(newIncomeRecord);
         }
 
-        saveState(appState);
+        await saveState(appState);
         showToast(isEditMode ? 'Salario actualizado' : 'Salario guardado');
         closeModal();
     };
@@ -377,10 +377,10 @@ export const renderSettingsView = (
     saveProfileButton.className = 'btn btn-add';
     saveProfileButton.style.width = '100%';
     saveProfileButton.style.marginTop = '20px';
-    saveProfileButton.onclick = () => {
+    saveProfileButton.onclick = async () => {
         appState.userProfile.firstName = (profileForm.querySelector('#user-firstname') as HTMLInputElement).value;
         appState.userProfile.lastName = (profileForm.querySelector('#user-lastname') as HTMLInputElement).value;
-        saveState(appState);
+        await saveState(appState);
         showToast('Perfil guardado con éxito');
     };
 
@@ -437,17 +437,11 @@ export const renderSettingsView = (
     saveCurrencyButton.className = 'btn btn-add';
     saveCurrencyButton.style.width = '100%';
     saveCurrencyButton.style.marginTop = '20px';
-    saveCurrencyButton.onclick = () => {
+    saveCurrencyButton.onclick = async () => {
         const selectedCurrency = (currencyForm.querySelector('#user-currency') as HTMLSelectElement).value;
         appState.userProfile.currency = selectedCurrency;
-        saveState(appState);
+        await saveState(appState);
         showToast('Moneda guardada. Actualizando vista...');
-        
-        // Re-render the main dashboard and the stats panel to reflect currency changes
-        setTimeout(() => {
-            mainNavigate('dashboard', {});
-            navigate('settings'); // Re-render settings to show correct selection
-        }, 500);
     };
     
     currencyForm.appendChild(currencyGroup);
@@ -459,7 +453,7 @@ export const renderSettingsView = (
     // --- Cloud Sync Section ---
     const syncSection = document.createElement('div');
     syncSection.className = 'stats-section';
-    const syncCard = createSimpleCard('Sincronización en la Nube');
+    const syncCard = createSimpleCard('Sincronización Supabase');
 
     const syncForm = document.createElement('form');
     syncForm.className = 'income-form';
@@ -478,11 +472,11 @@ export const renderSettingsView = (
     frequencySelect.id = 'user-sync-frequency';
     frequencySelect.name = 'syncFrequency';
     frequencySelect.className = 'form-input';
-    const frequencies: UserProfile['cloudSyncFrequency'][] = ['Nunca', 'Cada 6 horas', 'Cada 24 horas', 'Cada mes'];
+    const frequencies: UserProfile['cloudSyncFrequency'][] = ['Siempre', 'Cada hora'];
     frequencies.forEach(freq => {
         const option = document.createElement('option');
-        option.value = freq || 'Nunca';
-        option.textContent = freq || 'Nunca';
+        option.value = freq;
+        option.textContent = freq;
         frequencySelect.appendChild(option);
     });
     frequencyGroup.appendChild(frequencyLabel);
@@ -493,12 +487,12 @@ export const renderSettingsView = (
     saveSyncButton.className = 'btn btn-add';
     saveSyncButton.style.width = '100%';
     saveSyncButton.style.marginTop = '20px';
-    saveSyncButton.onclick = () => {
+    saveSyncButton.onclick = async () => {
         const email = (syncForm.querySelector('#user-sync-email') as HTMLInputElement).value;
         const frequency = (syncForm.querySelector('#user-sync-frequency') as HTMLSelectElement).value as UserProfile['cloudSyncFrequency'];
         appState.userProfile.cloudSyncEmail = email;
         appState.userProfile.cloudSyncFrequency = frequency;
-        saveState(appState);
+        await saveState(appState);
         showToast('Ajustes de sincronización guardados.');
     };
 
@@ -552,7 +546,7 @@ export const renderSettingsView = (
         (lastNameField.querySelector('input') as HTMLInputElement).value = currentUserProfile.lastName || '';
         currencySelect.value = currentUserProfile.currency || 'USD';
         (emailField.querySelector('input') as HTMLInputElement).value = currentUserProfile.cloudSyncEmail || '';
-        frequencySelect.value = currentUserProfile.cloudSyncFrequency || 'Nunca';
+        frequencySelect.value = currentUserProfile.cloudSyncFrequency || 'Siempre';
     }
     
     // Initial render of salaries
@@ -572,17 +566,12 @@ export const renderSettingsView = (
         showConfirmationModal(
             'Confirmar Borrado Total',
             'Estás a punto de borrar permanentemente todos los registros de ingresos, gastos y ahorros. Tu perfil de usuario no será modificado. ¿Deseas continuar? Esta acción no se puede deshacer.',
-            () => {
+            async () => {
                 appState.incomeRecords = [];
                 appState.expenseRecords = [];
                 appState.savingRecords = [];
-                saveState(appState);
+                await saveState(appState);
                 showToast('Todos los registros han sido borrados.');
-                
-                setTimeout(() => {
-                    mainNavigate('dashboard', {});
-                    navigate('statistics');
-                }, 1000);
             }
         );
     };

@@ -69,7 +69,7 @@ export const renderIncomeFormView = (container, navigate, type, recordId) => {
         if (isEditMode && recordToEdit && recordToEdit.date) {
             dateField.querySelector('input').value = recordToEdit.date;
         }
-        saveButton.onclick = () => {
+        saveButton.onclick = async () => {
             const formData = new FormData(form);
             const name = formData.get('income-name');
             const amountStr = formData.get('income-amount');
@@ -95,9 +95,9 @@ export const renderIncomeFormView = (container, navigate, type, recordId) => {
             else {
                 appState.incomeRecords.unshift(newRecord);
             }
+            await saveState(appState);
             showToast(isEditMode ? 'Éxito: Ingreso actualizado' : 'Éxito: Ingreso guardado');
-            saveState(appState);
-            setTimeout(() => navigate('incomeList'), 500);
+            setTimeout(() => navigate('incomeList'), 100);
         };
     }
     else if (type === 'Recurrente') {
@@ -191,7 +191,7 @@ export const renderIncomeFormView = (container, navigate, type, recordId) => {
                 }
             }
         }
-        saveButton.onclick = () => {
+        saveButton.onclick = async () => {
             const formData = new FormData(form);
             const name = formData.get('income-name');
             const amountStr = formData.get('income-amount');
@@ -224,9 +224,9 @@ export const renderIncomeFormView = (container, navigate, type, recordId) => {
             else {
                 appState.incomeRecords.unshift(newRecord);
             }
+            await saveState(appState);
             showToast(isEditMode ? 'Éxito: Ingreso actualizado' : 'Éxito: Ingreso guardado');
-            saveState(appState);
-            setTimeout(() => navigate('incomeList'), 500);
+            setTimeout(() => navigate('incomeList'), 100);
         };
     }
     if (isEditMode && recordToEdit) {
