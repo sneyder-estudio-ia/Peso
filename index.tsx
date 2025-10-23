@@ -60,6 +60,7 @@ interface NavigationState {
 
 let currentView: ViewType = 'dashboard';
 let currentState: NavigationState = {};
+let currentStatsPanelView: StatsPanelViewType = 'statistics';
 
 const viewContainers: { [key: string]: HTMLElement } = {};
 
@@ -313,6 +314,7 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
 };
 
 const navigateToStatsPanel = (view: StatsPanelViewType) => {
+    currentStatsPanelView = view;
     if (!statsPanel) return;
 
     switch (view) {
@@ -448,7 +450,7 @@ if (root && mainAppTitle && statsPanel && navPanel) {
     // Subscription to automatically refresh UI on state changes
     subscribe(() => {
         if (navPanel) renderNavPanel(navPanel, navigateTo);
-        navigateToStatsPanel('statistics');
+        navigateToStatsPanel(currentStatsPanelView);
         renderCurrentView();
     });
 

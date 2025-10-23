@@ -40,6 +40,7 @@ const navPanel = document.getElementById('nav-panel');
 
 let currentView = 'dashboard';
 let currentState = {};
+let currentStatsPanelView = 'statistics';
 
 const viewContainers = {};
 
@@ -293,6 +294,7 @@ const renderNavPanel = (panel, navigate) => {
 };
 
 const navigateToStatsPanel = (view) => {
+    currentStatsPanelView = view;
     if (!statsPanel) return;
 
     switch (view) {
@@ -428,7 +430,7 @@ if (root && mainAppTitle && statsPanel && navPanel) {
     // Subscription to automatically refresh UI on state changes
     subscribe(() => {
         if (navPanel) renderNavPanel(navPanel, navigateTo);
-        navigateToStatsPanel('statistics');
+        navigateToStatsPanel(currentStatsPanelView);
         renderCurrentView();
     });
 

@@ -67,7 +67,6 @@ const deleteSalary = (salaryId: string) => {
 
             saveState(appState);
             showToast('Salario borrado con éxito.');
-            renderSalariesList();
         }
     );
 };
@@ -232,7 +231,6 @@ const openSalaryModal = (salaryId?: string) => {
 
         saveState(appState);
         showToast(isEditMode ? 'Salario actualizado' : 'Salario guardado');
-        renderSalariesList();
         closeModal();
     };
     
@@ -514,7 +512,7 @@ export const renderSettingsView = (
     // --- Salaries Section ---
     const salariesSection = document.createElement('div');
     salariesSection.className = 'stats-section';
-    const salariesCard = createSimpleCard('Salarios Fijos');
+    const salariesCard = createSimpleCard('Salario Fijo Dominante');
     const salaryForm = document.createElement('div');
     salaryForm.className = 'income-form';
     salaryForm.style.marginTop = '15px';
@@ -523,16 +521,19 @@ export const renderSettingsView = (
     salaryLabelContainer.className = 'form-label-container';
     const salaryLabel = document.createElement('label');
     salaryLabel.className = 'form-label';
-    salaryLabel.textContent = 'Gestionar Salarios';
-    const addSalaryButton = document.createElement('button');
-    addSalaryButton.className = 'btn-add-small';
-    addSalaryButton.textContent = '+';
-    addSalaryButton.type = 'button';
-    addSalaryButton.setAttribute('aria-label', 'Agregar nuevo salario');
-    addSalaryButton.onclick = () => openSalaryModal();
+    salaryLabel.textContent = 'Gestionar Salario';
     
     salaryLabelContainer.appendChild(salaryLabel);
-    salaryLabelContainer.appendChild(addSalaryButton);
+
+    if ((appState.userProfile.salaries || []).length === 0) {
+        const addSalaryButton = document.createElement('button');
+        addSalaryButton.className = 'btn-add-small';
+        addSalaryButton.textContent = '+';
+        addSalaryButton.type = 'button';
+        addSalaryButton.setAttribute('aria-label', 'Agregar nuevo salario');
+        addSalaryButton.onclick = () => openSalaryModal();
+        salaryLabelContainer.appendChild(addSalaryButton);
+    }
     
     salariesListContainer = document.createElement('div');
     salariesListContainer.id = 'salaries-list-container';
