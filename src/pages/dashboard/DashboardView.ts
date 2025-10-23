@@ -23,48 +23,93 @@ const calculateProjectedMonthValue = (
     let total = 0;
 
     records.forEach(record => {
-        if (record.type === 'Único' && record.date) {
-            const [recYear, recMonth] = record.date.split('-').map(Number);
-            if (recYear === year && recMonth === month + 1) {
-                total += record.amount;
-            }
-        } else if (record.type === 'Recurrente' && record.recurrence) {
-            const expenseRecord = record as ExpenseRecord;
-            const isExpenseWithDuration = 'durationInMonths' in expenseRecord && typeof expenseRecord.durationInMonths === 'number' && expenseRecord.durationInMonths > 0;
-            let isCompleted = false;
-
-            if (isExpenseWithDuration && !expenseRecord.isInfinite) {
-                if ((expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths!) {
-                    isCompleted = true;
-                }
-            }
-
-            if (!isCompleted) {
-                switch (record.recurrence.type) {
-                    case 'Diario':
-                        total += record.amount * daysInMonth;
-                        break;
-                    case 'Semanal':
-                        if (record.recurrence.dayOfWeek) {
-                            const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek];
-                            if (targetDayIndex !== undefined) {
-                                let count = 0;
-                                for (let day = 1; day <= daysInMonth; day++) {
-                                    const date = new Date(year, month, day);
-                                    if (date.getDay() === targetDayIndex) {
-                                        count++;
+        if ((record as ExpenseRecord).isGroup && (record as ExpenseRecord).items) {
+            (record as ExpenseRecord).items!.forEach(item => {
+                if (record.type === 'Único' && item.date) {
+                    const [recYear, recMonth] = item.date.split('-').map(Number);
+                    if (recYear === year && recMonth === month + 1) {
+                        total += item.amount;
+                    }
+                } else if (record.type === 'Recurrente' && item.recurrence) {
+                    let isCompleted = false;
+                    if ('durationInMonths' in item && typeof item.durationInMonths === 'number' && item.durationInMonths > 0 && !item.isInfinite) {
+                        if ((item.installmentsPaid ?? 0) >= item.durationInMonths!) {
+                            isCompleted = true;
+                        }
+                    }
+    
+                    if (!isCompleted) {
+                        switch (item.recurrence.type) {
+                            case 'Diario':
+                                total += item.amount * daysInMonth;
+                                break;
+                            case 'Semanal':
+                                if (item.recurrence.dayOfWeek) {
+                                    const targetDayIndex = dayNameToIndex[item.recurrence.dayOfWeek];
+                                    if (targetDayIndex !== undefined) {
+                                        let count = 0;
+                                        for (let day = 1; day <= daysInMonth; day++) {
+                                            const date = new Date(year, month, day);
+                                            if (date.getDay() === targetDayIndex) count++;
+                                        }
+                                        total += item.amount * count;
                                     }
                                 }
-                                total += record.amount * count;
+                                break;
+                            case 'Quincenal':
+                            case 'Mensual':
+                                if (item.recurrence.daysOfMonth) {
+                                    total += item.amount * item.recurrence.daysOfMonth.length;
+                                }
+                                break;
+                        }
+                    }
+                }
+            });
+        } else {
+            if (record.type === 'Único' && record.date) {
+                const [recYear, recMonth] = record.date.split('-').map(Number);
+                if (recYear === year && recMonth === month + 1) {
+                    total += record.amount;
+                }
+            } else if (record.type === 'Recurrente' && record.recurrence) {
+                const expenseRecord = record as ExpenseRecord;
+                const isExpenseWithDuration = 'durationInMonths' in expenseRecord && typeof expenseRecord.durationInMonths === 'number' && expenseRecord.durationInMonths > 0;
+                let isCompleted = false;
+
+                if (isExpenseWithDuration && !expenseRecord.isInfinite) {
+                    if ((expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths!) {
+                        isCompleted = true;
+                    }
+                }
+
+                if (!isCompleted) {
+                    switch (record.recurrence.type) {
+                        case 'Diario':
+                            total += record.amount * daysInMonth;
+                            break;
+                        case 'Semanal':
+                            if (record.recurrence.dayOfWeek) {
+                                const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek];
+                                if (targetDayIndex !== undefined) {
+                                    let count = 0;
+                                    for (let day = 1; day <= daysInMonth; day++) {
+                                        const date = new Date(year, month, day);
+                                        if (date.getDay() === targetDayIndex) {
+                                            count++;
+                                        }
+                                    }
+                                    total += record.amount * count;
+                                }
                             }
-                        }
-                        break;
-                    case 'Quincenal':
-                    case 'Mensual':
-                        if (record.recurrence.daysOfMonth) {
-                            total += record.amount * record.recurrence.daysOfMonth.length;
-                        }
-                        break;
+                            break;
+                        case 'Quincenal':
+                        case 'Mensual':
+                            if (record.recurrence.daysOfMonth) {
+                                total += record.amount * record.recurrence.daysOfMonth.length;
+                            }
+                            break;
+                    }
                 }
             }
         }
@@ -95,56 +140,102 @@ const calculateValueInDateRange = (
     }
 
     records.forEach(record => {
-        if (record.type === 'Único' && record.date) {
-            // Use a robust numeric comparison (YYYYMMDD) to avoid timezone/Date object issues.
-            const dateParts = record.date.split('-').map(Number);
-            const recordDateNum = dateParts[0] * 10000 + dateParts[1] * 100 + dateParts[2];
-            
-            const startDateNum = start.getFullYear() * 10000 + (start.getMonth() + 1) * 100 + start.getDate();
-            const endDateNum = end.getFullYear() * 10000 + (end.getMonth() + 1) * 100 + end.getDate();
-
-            if (recordDateNum >= startDateNum && recordDateNum <= endDateNum) {
-                total += record.amount;
-            }
-
-        } else if (record.type === 'Recurrente' && record.recurrence) {
-            const expenseRecord = record as ExpenseRecord;
-            const isExpenseWithDuration = 'durationInMonths' in expenseRecord && typeof expenseRecord.durationInMonths === 'number' && expenseRecord.durationInMonths > 0;
-            let isCompleted = false;
-
-            if (isExpenseWithDuration && !expenseRecord.isInfinite) {
-                if ((expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths!) {
-                    isCompleted = true;
+        if ((record as ExpenseRecord).isGroup && (record as ExpenseRecord).items) {
+            (record as ExpenseRecord).items!.forEach(item => {
+                // Logic for unique items in a group
+                if (record.type === 'Único' && item.date) {
+                    const dateParts = item.date.split('-').map(Number);
+                    const recordDateNum = dateParts[0] * 10000 + dateParts[1] * 100 + dateParts[2];
+                    const startDateNum = start.getFullYear() * 10000 + (start.getMonth() + 1) * 100 + start.getDate();
+                    const endDateNum = end.getFullYear() * 10000 + (end.getMonth() + 1) * 100 + end.getDate();
+    
+                    if (recordDateNum >= startDateNum && recordDateNum <= endDateNum) {
+                        total += item.amount;
+                    }
+                } 
+                // Logic for recurrent items in a group
+                else if (record.type === 'Recurrente' && item.recurrence) {
+                    const isItemWithDuration = 'durationInMonths' in item && typeof item.durationInMonths === 'number' && item.durationInMonths > 0;
+                    let isCompleted = false;
+                    if (isItemWithDuration && !item.isInfinite) {
+                        if ((item.installmentsPaid ?? 0) >= item.durationInMonths!) {
+                            isCompleted = true;
+                        }
+                    }
+    
+                    if (!isCompleted) {
+                        let currentDate = new Date(start);
+                        while (currentDate <= end) {
+                            let eventHappens = false;
+                            switch (item.recurrence.type) {
+                                case 'Diario': eventHappens = true; break;
+                                case 'Semanal':
+                                    const targetDayIndex = dayNameToIndex[item.recurrence.dayOfWeek!];
+                                    if (currentDate.getDay() === targetDayIndex) eventHappens = true;
+                                    break;
+                                case 'Quincenal': case 'Mensual':
+                                    const dayOfMonth = currentDate.getDate();
+                                    if (item.recurrence.daysOfMonth?.includes(dayOfMonth)) eventHappens = true;
+                                    break;
+                            }
+                            if (eventHappens) total += item.amount;
+                            currentDate.setDate(currentDate.getDate() + 1);
+                        }
+                    }
                 }
-            }
+            });
+        } else {
+            if (record.type === 'Único' && record.date) {
+                // Use a robust numeric comparison (YYYYMMDD) to avoid timezone/Date object issues.
+                const dateParts = record.date.split('-').map(Number);
+                const recordDateNum = dateParts[0] * 10000 + dateParts[1] * 100 + dateParts[2];
+                
+                const startDateNum = start.getFullYear() * 10000 + (start.getMonth() + 1) * 100 + start.getDate();
+                const endDateNum = end.getFullYear() * 10000 + (end.getMonth() + 1) * 100 + end.getDate();
 
-            if (!isCompleted) {
-                // Iterate through each day in the range to check for recurring events
-                let currentDate = new Date(start);
-                while (currentDate <= end) {
-                    let eventHappens = false;
-                    switch (record.recurrence.type) {
-                        case 'Diario':
-                            eventHappens = true;
-                            break;
-                        case 'Semanal':
-                            const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek!];
-                            if (currentDate.getDay() === targetDayIndex) {
-                                eventHappens = true;
-                            }
-                            break;
-                        case 'Quincenal':
-                        case 'Mensual':
-                            const dayOfMonth = currentDate.getDate();
-                            if (record.recurrence.daysOfMonth?.includes(dayOfMonth)) {
-                                eventHappens = true;
-                            }
-                            break;
+                if (recordDateNum >= startDateNum && recordDateNum <= endDateNum) {
+                    total += record.amount;
+                }
+
+            } else if (record.type === 'Recurrente' && record.recurrence) {
+                const expenseRecord = record as ExpenseRecord;
+                const isExpenseWithDuration = 'durationInMonths' in expenseRecord && typeof expenseRecord.durationInMonths === 'number' && expenseRecord.durationInMonths > 0;
+                let isCompleted = false;
+
+                if (isExpenseWithDuration && !expenseRecord.isInfinite) {
+                    if ((expenseRecord.installmentsPaid ?? 0) >= expenseRecord.durationInMonths!) {
+                        isCompleted = true;
                     }
-                    if (eventHappens) {
-                        total += record.amount;
+                }
+
+                if (!isCompleted) {
+                    // Iterate through each day in the range to check for recurring events
+                    let currentDate = new Date(start);
+                    while (currentDate <= end) {
+                        let eventHappens = false;
+                        switch (record.recurrence.type) {
+                            case 'Diario':
+                                eventHappens = true;
+                                break;
+                            case 'Semanal':
+                                const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek!];
+                                if (currentDate.getDay() === targetDayIndex) {
+                                    eventHappens = true;
+                                }
+                                break;
+                            case 'Quincenal':
+                            case 'Mensual':
+                                const dayOfMonth = currentDate.getDate();
+                                if (record.recurrence.daysOfMonth?.includes(dayOfMonth)) {
+                                    eventHappens = true;
+                                }
+                                break;
+                        }
+                        if (eventHappens) {
+                            total += record.amount;
+                        }
+                        currentDate.setDate(currentDate.getDate() + 1);
                     }
-                    currentDate.setDate(currentDate.getDate() + 1);
                 }
             }
         }

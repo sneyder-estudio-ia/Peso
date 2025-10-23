@@ -23,12 +23,23 @@ export interface IncomeRecord {
     salaryId?: string;
 }
 
+export interface ExpenseSubItem {
+    name: string;
+    amount: number; // installment for recurrent, total for unique
+    date?: string; // For 'Único' items
+    recurrence?: RecurrenceRule; // For 'Recurrente' items
+    isInfinite?: boolean;
+    totalAmount?: number;
+    durationInMonths?: number;
+    installmentsPaid?: number;
+}
+
 export interface ExpenseRecord {
     id: string;
     type: 'Recurrente' | 'Único';
     name: string;
     category: string;
-    amount: number; // For 'Único', this is the total amount. For 'Recurrente', it's the installment amount.
+    amount: number; // For 'Único', this is the total amount. For 'Recurrente', it's the installment amount. For groups, it's the SUM.
     totalAmount?: number; // For 'Recurrente', this is the total amount of the expense.
     description: string;
     date?: string; // For 'Único'
@@ -36,6 +47,8 @@ export interface ExpenseRecord {
     durationInMonths?: number;
     installmentsPaid?: number;
     isInfinite?: boolean;
+    isGroup?: boolean;
+    items?: ExpenseSubItem[];
 }
 
 export interface SavingRecord {

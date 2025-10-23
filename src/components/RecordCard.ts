@@ -209,7 +209,11 @@ export const createExpenseRecordCard = (record: ExpenseRecord, navigate: Navigat
 
     const date = document.createElement('span');
     date.className = 'income-record-date';
-    date.textContent = record.recurrence ? formatRecurrence(record.recurrence) : record.date;
+    if (record.isGroup) {
+        date.textContent = `${record.items?.length || 0} Gasto(s) en este grupo`;
+    } else {
+        date.textContent = record.recurrence ? formatRecurrence(record.recurrence) : record.date;
+    }
 
     info.appendChild(name);
     info.appendChild(date);
@@ -225,16 +229,25 @@ export const createExpenseRecordCard = (record: ExpenseRecord, navigate: Navigat
     editButton.className = 'btn-edit';
     editButton.innerHTML = '&#x270F;'; // Pencil icon
     editButton.setAttribute('aria-label', `Editar gasto ${record.name}`);
-    editButton.onclick = (e) => {
-        e.stopPropagation();
-        showConfirmationModal(
-            'Confirmar Edición',
-            '¿Estás seguro de que quieres editar este gasto?',
-            () => navigate('expenseForm', { recordType: record.type, recordId: record.id }),
-            'btn-add',
-            'Editar'
-        );
-    };
+    
+    if (record.isGroup) {
+        editButton.disabled = true;
+        editButton.style.cursor = 'not-allowed';
+        editButton.style.color = '#555';
+        editButton.title = 'La edición de grupos no está disponible.';
+    } else {
+        editButton.onclick = (e) => {
+            e.stopPropagation();
+            showConfirmationModal(
+                'Confirmar Edición',
+                '¿Estás seguro de que quieres editar este gasto?',
+                () => navigate('expenseForm', { recordType: record.type, recordId: record.id }),
+                'btn-add',
+                'Editar'
+            );
+        };
+    }
+
 
     const deleteButton = document.createElement('button');
     deleteButton.className = 'btn-delete';

@@ -1,5 +1,5 @@
 import { appState, saveState } from '../../state/store.js';
-import { ExpenseRecord, RecurrenceRule } from '../../types/index.js';
+import { ExpenseRecord, RecurrenceRule, ExpenseSubItem } from '../../types/index.js';
 import { parseCurrency, formatCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
 import { showToast } from '../../components/Toast.js';
 
@@ -507,7 +507,7 @@ export const renderExpenseFormView = (
                 return;
             }
     
-            const newRecords: ExpenseRecord[] = [];
+            const items: ExpenseSubItem[] = [];
             const itemWrappers = form.querySelectorAll('#multiple-items-container > div');
             let hasError = false;
     
@@ -523,14 +523,10 @@ export const renderExpenseFormView = (
                     if (!name || !date || !amountStr || parseCurrency(amountStr) === 0) {
                         hasError = true;
                     } else {
-                        newRecords.push({
-                            id: `exp-${Date.now()}-${newRecords.length}`,
-                            type: 'Único',
+                        items.push({
                             name: name,
-                            category: groupTitle,
                             amount: parseCurrency(amountStr),
                             date: date,
-                            description: `Parte del grupo de gastos: ${groupTitle}`,
                         });
                     }
                 } else { // Recurrente
@@ -563,13 +559,9 @@ export const renderExpenseFormView = (
                     const duration = parseInt(durationInMonthsStr, 10);
                     const paid = parseInt(monthsPaidStr, 10);
     
-                    newRecords.push({
-                        id: `exp-${Date.now()}-${newRecords.length}`,
-                        type: 'Recurrente',
+                    items.push({
                         name: name,
-                        category: groupTitle,
                         amount: parseCurrency(amountStr),
-                        description: `Parte del grupo de gastos: ${groupTitle}`,
                         recurrence: recurrence,
                         isInfinite: isInfinite,
                         totalAmount: isInfinite ? undefined : parseCurrency(totalAmountStr),
@@ -583,13 +575,26 @@ export const renderExpenseFormView = (
                 alert('Por favor, complete todos los campos requeridos (nombre, monto, fecha/frecuencia) para cada gasto.');
                 return;
             }
-            if (newRecords.length === 0) {
+            if (items.length === 0) {
                 alert('Agregue al menos un gasto válido.');
                 return;
             }
+
+            const totalAmountForGroup = items.reduce((sum, item) => sum + item.amount, 0);
+
+            const groupRecord: ExpenseRecord = {
+                id: `exp-${Date.now()}`,
+                type: type,
+                name: groupTitle,
+                category: "Grupo",
+                amount: totalAmountForGroup,
+                description: `Grupo con ${items.length} gasto(s).`,
+                isGroup: true,
+                items: items,
+            };
     
-            appState.expenseRecords.unshift(...newRecords.reverse());
-            showToast(`Éxito: ${newRecords.length} gasto(s) guardado(s)`);
+            appState.expenseRecords.unshift(groupRecord);
+            showToast(`Éxito: Grupo "${groupTitle}" guardado.`);
 
         } else if (type === 'Único') {
             const formData = new FormData(form);

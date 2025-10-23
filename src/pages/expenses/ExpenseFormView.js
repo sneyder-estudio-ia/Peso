@@ -458,7 +458,7 @@ export const renderExpenseFormView = (container, navigate, type, recordId) => {
                 alert('Por favor, ingrese un Título para el grupo de gastos.');
                 return;
             }
-            const newRecords = [];
+            const items = [];
             const itemWrappers = form.querySelectorAll('#multiple-items-container > div');
             let hasError = false;
             itemWrappers.forEach(wrapper => {
@@ -473,14 +473,10 @@ export const renderExpenseFormView = (container, navigate, type, recordId) => {
                         hasError = true;
                     }
                     else {
-                        newRecords.push({
-                            id: `exp-${Date.now()}-${newRecords.length}`,
-                            type: 'Único',
+                        items.push({
                             name: name,
-                            category: groupTitle,
                             amount: parseCurrency(amountStr),
                             date: date,
-                            description: `Parte del grupo de gastos: ${groupTitle}`,
                         });
                     }
                 }
@@ -511,13 +507,9 @@ export const renderExpenseFormView = (container, navigate, type, recordId) => {
                     }
                     const duration = parseInt(durationInMonthsStr, 10);
                     const paid = parseInt(monthsPaidStr, 10);
-                    newRecords.push({
-                        id: `exp-${Date.now()}-${newRecords.length}`,
-                        type: 'Recurrente',
+                    items.push({
                         name: name,
-                        category: groupTitle,
                         amount: parseCurrency(amountStr),
-                        description: `Parte del grupo de gastos: ${groupTitle}`,
                         recurrence: recurrence,
                         isInfinite: isInfinite,
                         totalAmount: isInfinite ? undefined : parseCurrency(totalAmountStr),
@@ -530,12 +522,23 @@ export const renderExpenseFormView = (container, navigate, type, recordId) => {
                 alert('Por favor, complete todos los campos requeridos (nombre, monto, fecha/frecuencia) para cada gasto.');
                 return;
             }
-            if (newRecords.length === 0) {
+            if (items.length === 0) {
                 alert('Agregue al menos un gasto válido.');
                 return;
             }
-            appState.expenseRecords.unshift(...newRecords.reverse());
-            showToast(`Éxito: ${newRecords.length} gasto(s) guardado(s)`);
+            const totalAmountForGroup = items.reduce((sum, item) => sum + item.amount, 0);
+            const groupRecord = {
+                id: `exp-${Date.now()}`,
+                type: type,
+                name: groupTitle,
+                category: "Grupo",
+                amount: totalAmountForGroup,
+                description: `Grupo con ${items.length} gasto(s).`,
+                isGroup: true,
+                items: items,
+            };
+            appState.expenseRecords.unshift(groupRecord);
+            showToast(`Éxito: Grupo "${groupTitle}" guardado.`);
         }
         else if (type === 'Único') {
             const formData = new FormData(form);
