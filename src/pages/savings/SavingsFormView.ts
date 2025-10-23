@@ -343,7 +343,7 @@ export const renderSavingsFormView = (
 
     if (isEditMode && recordToEdit) {
         (nameField.querySelector('input') as HTMLInputElement).value = recordToEdit.name;
-        (amountField.querySelector('input') as HTMLInputElement).value = formatCurrency(recordToEdit.amount).replace(/\./g, '').replace(',', ',');
+        (amountField.querySelector('input') as HTMLInputElement).value = formatCurrency(recordToEdit.amount);
         (goalAmountField.querySelector('input') as HTMLInputElement).value = formatCurrency(recordToEdit.goalAmount);
         (descriptionField.querySelector('textarea') as HTMLTextAreaElement).value = recordToEdit.description;
 

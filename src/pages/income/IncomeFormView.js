@@ -232,7 +232,7 @@ export const renderIncomeFormView = (container, navigate, type, recordId) => {
     if (isEditMode && recordToEdit) {
         nameField.querySelector('input').value = recordToEdit.name;
         sourceField.querySelector('input').value = recordToEdit.source;
-        amountField.querySelector('input').value = formatCurrency(recordToEdit.amount).replace(/\./g, '').replace(',', ',');
+        amountField.querySelector('input').value = formatCurrency(recordToEdit.amount);
         descriptionField.querySelector('textarea').value = recordToEdit.description;
     }
     form.appendChild(descriptionField);

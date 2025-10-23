@@ -27,7 +27,6 @@ const calculateProjectedMonthValue = (records, year, month) => {
                         }
                     }
                     if (!isCompleted) {
-                        // Recurrence logic for sub-items...
                         switch (item.recurrence.type) {
                             case 'Diario':
                                 total += item.amount * daysInMonth;
@@ -69,7 +68,6 @@ const calculateProjectedMonthValue = (records, year, month) => {
                     }
                 }
                 if (!isCompleted) {
-                    // Recurrence logic for main records...
                     switch (record.recurrence.type) {
                         case 'Diario':
                             total += record.amount * daysInMonth;
@@ -98,31 +96,26 @@ const calculateProjectedMonthValue = (records, year, month) => {
     });
     return total;
 };
-export const renderFinancialInfoView = (container, navigate) => {
+export const renderFinancialForecastView = (container, navigate) => {
     container.innerHTML = '';
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const monthName = now.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+    const nextMonthDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const year = nextMonthDate.getFullYear();
+    const month = nextMonthDate.getMonth();
+    const monthName = nextMonthDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     // --- Header ---
     const header = document.createElement('div');
     header.className = 'income-page-header';
     const backButton = document.createElement('button');
     backButton.className = 'btn btn-back';
-    backButton.innerHTML = '&larr; Volver';
-    backButton.onclick = () => navigate('dashboard');
+    backButton.innerHTML = '&larr; Volver al Informe';
+    backButton.onclick = () => navigate('financialInfo');
     header.appendChild(backButton);
-    const forecastButton = document.createElement('button');
-    forecastButton.className = 'btn btn-option';
-    forecastButton.textContent = 'Ver Pronóstico';
-    forecastButton.style.marginLeft = 'auto';
-    forecastButton.onclick = () => navigate('financialForecast');
-    header.appendChild(forecastButton);
     container.appendChild(header);
     const title = document.createElement('h2');
     title.className = 'card-title';
-    title.textContent = `Informe Financiero de ${monthName}`;
+    title.textContent = `Pronóstico Financiero de ${monthName}`;
     container.appendChild(title);
     // --- 1. DATA CALCULATION ---
     const totalMonthlyExpense = calculateProjectedMonthValue(appState.expenseRecords, year, month);
@@ -134,7 +127,7 @@ export const renderFinancialInfoView = (container, navigate) => {
     summaryGrid.className = 'summary-grid';
     summaryGrid.innerHTML = `
         <div class="summary-item">
-            <div class="label">Total de Gastos</div>
+            <div class="label">Gastos Proyectados</div>
             <div class="primary-value expense">${formatCurrency(totalMonthlyExpense, { includeSymbol: true })}</div>
         </div>
         <div class="summary-item">
@@ -142,11 +135,11 @@ export const renderFinancialInfoView = (container, navigate) => {
             <div class="primary-value expense">${formatCurrency(dailyAverage, { includeSymbol: true })}</div>
         </div>
         <div class="summary-item">
-            <div class="label">Total de Ingresos</div>
+            <div class="label">Ingresos Proyectados</div>
             <div class="primary-value income">${formatCurrency(totalMonthlyIncome, { includeSymbol: true })}</div>
         </div>
         <div class="summary-item">
-            <div class="label">Balance del Mes</div>
+            <div class="label">Balance Proyectado</div>
             <div class="primary-value ${monthlyBalance >= 0 ? 'income' : 'expense'}">${formatCurrency(monthlyBalance, { includeSymbol: true })}</div>
         </div>
     `;
@@ -198,7 +191,7 @@ export const renderFinancialInfoView = (container, navigate) => {
         chartSection.className = 'report-section';
         const chartTitle = document.createElement('h3');
         chartTitle.className = 'card-title';
-        chartTitle.textContent = 'Desglose de Gastos por Categoría';
+        chartTitle.textContent = 'Desglose de Gastos Proyectados';
         chartSection.appendChild(chartTitle);
         const chartData = Object.entries(expenseBreakdown)
             .map(([label, value], index) => ({
@@ -214,7 +207,7 @@ export const renderFinancialInfoView = (container, navigate) => {
     listSection.className = 'report-section';
     const listTitle = document.createElement('h3');
     listTitle.className = 'card-title';
-    listTitle.textContent = 'Listado de Transacciones del Mes';
+    listTitle.textContent = 'Transacciones Proyectadas del Mes';
     listSection.appendChild(listTitle);
     if (detailedExpenses.length > 0) {
         const transactionList = document.createElement('div');
@@ -236,7 +229,7 @@ export const renderFinancialInfoView = (container, navigate) => {
     else {
         const emptyMessage = document.createElement('p');
         emptyMessage.className = 'empty-list-message';
-        emptyMessage.textContent = 'No se registraron gastos este mes.';
+        emptyMessage.textContent = 'No se proyectan gastos para el próximo mes.';
         listSection.appendChild(emptyMessage);
     }
     container.appendChild(listSection);

@@ -183,7 +183,9 @@ const openSalaryModal = (salaryId?: string) => {
         if (frequencyType === 'Semanal') {
             recurrence.dayOfWeek = formData.get('dayOfWeek') as string;
         } else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
-            recurrence.daysOfMonth = (formData.getAll('daysOfMonth') as string[]).map(d => parseInt(d, 10)).filter(d => d > 0);
+             recurrence.daysOfMonth = (formData.getAll('daysOfMonth') as string[])
+                .map(d => parseInt(d, 10))
+                .filter(d => !isNaN(d) && d > 0);
         }
 
         const newSalary: Salary = {

@@ -29,6 +29,7 @@ import { renderStatisticsView } from './src/pages/statistics/StatisticsView.js';
 import { renderSettingsView } from './src/pages/settings/SettingsView.js';
 import { renderArchivedListView } from './src/pages/archived/ArchivedListView.js';
 import { renderFinancialInfoView } from './src/pages/financialInfo/FinancialInfoView.js';
+import { renderFinancialForecastView } from './src/pages/financialForecast/FinancialForecastView.js';
 import { IncomeRecord, ExpenseRecord, ExpenseSubItem } from './src/types/index.js';
 import { appState, subscribe, initializeAppState, saveState } from './src/state/store.js';
 import { formatCurrency } from './src/utils/currency.js';
@@ -54,7 +55,8 @@ type ViewType =
     | 'expenseDetails'
     | 'savingsDetails'
     | 'archivedList'
-    | 'financialInfo';
+    | 'financialInfo'
+    | 'financialForecast';
 
 type StatsPanelViewType = 'statistics' | 'settings';
 
@@ -442,6 +444,9 @@ const renderCurrentView = () => {
         case 'financialInfo':
             renderFinancialInfoView(viewContainers.financialInfo, navigateTo);
             break;
+        case 'financialForecast':
+            renderFinancialForecastView(viewContainers.financialForecast, navigateTo);
+            break;
     }
 };
 
@@ -725,6 +730,7 @@ async function main() {
         createViewContainer('savingsDetails');
         createViewContainer('archived');
         createViewContainer('financialInfo');
+        createViewContainer('financialForecast');
 
         // Subscription to automatically refresh UI on state changes
         subscribe(() => {

@@ -270,7 +270,7 @@ export const renderIncomeFormView = (
     if (isEditMode && recordToEdit) {
         (nameField.querySelector('input') as HTMLInputElement).value = recordToEdit.name;
         (sourceField.querySelector('input') as HTMLInputElement).value = recordToEdit.source;
-        (amountField.querySelector('input') as HTMLInputElement).value = formatCurrency(recordToEdit.amount).replace(/\./g, '').replace(',', ',');
+        (amountField.querySelector('input') as HTMLInputElement).value = formatCurrency(recordToEdit.amount);
         (descriptionField.querySelector('textarea') as HTMLTextAreaElement).value = recordToEdit.description;
     }
 

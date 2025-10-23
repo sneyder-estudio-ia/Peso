@@ -28,6 +28,7 @@ import { renderStatisticsView } from './src/pages/statistics/StatisticsView.js';
 import { renderSettingsView } from './src/pages/settings/SettingsView.js';
 import { renderArchivedListView } from './src/pages/archived/ArchivedListView.js';
 import { renderFinancialInfoView } from './src/pages/financialInfo/FinancialInfoView.js';
+import { renderFinancialForecastView } from './src/pages/financialForecast/FinancialForecastView.js';
 import { appState, subscribe, initializeAppState, saveState } from './src/state/store.js';
 import { formatCurrency } from './src/utils/currency.js';
 import { showToast } from './src/components/Toast.js';
@@ -391,6 +392,9 @@ const renderCurrentView = () => {
         case 'financialInfo':
             renderFinancialInfoView(viewContainers.financialInfo, navigateTo);
             break;
+        case 'financialForecast':
+            renderFinancialForecastView(viewContainers.financialForecast, navigateTo);
+            break;
     }
 };
 const navigateTo = (view, state = {}) => {
@@ -661,6 +665,7 @@ async function main() {
         createViewContainer('savingsDetails');
         createViewContainer('archived');
         createViewContainer('financialInfo');
+        createViewContainer('financialForecast');
         // Subscription to automatically refresh UI on state changes
         subscribe(() => {
             if (navPanel)

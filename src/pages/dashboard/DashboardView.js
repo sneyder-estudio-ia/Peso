@@ -1,3 +1,19 @@
+/**
+ * @license
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 import { createCard } from '../../components/common.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { appState } from '../../state/store.js';
@@ -231,104 +247,98 @@ export const renderDashboardView = (container, navigate) => {
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
-    // --- Determine Dominant Frequency from all recurring records, prioritizing higher frequencies ---
-    const allRecurringRecords = [...appState.incomeRecords, ...appState.expenseRecords]
-        .filter(r => r.type === 'Recurrente' && r.recurrence);
-    let dominantFrequency = 'Mensual'; // Default
-    if (allRecurringRecords.some(r => r.recurrence.type === 'Diario')) {
-        dominantFrequency = 'Diario';
-    }
-    else if (allRecurringRecords.some(r => r.recurrence.type === 'Semanal')) {
-        dominantFrequency = 'Semanal';
-    }
-    else if (allRecurringRecords.some(r => r.recurrence.type === 'Quincenal')) {
-        dominantFrequency = 'Quincenal';
-    }
-    // --- Define the current payment period based on the dominant frequency ---
+    // --- New Period Calculation Logic ---
     let periodStartDate;
     let periodEndDate;
-    const today = now.getDate();
-    const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    switch (dominantFrequency) {
-        case 'Diario':
-            periodStartDate = new Date(now.setHours(0, 0, 0, 0));
-            periodEndDate = new Date(now.setHours(23, 59, 59, 999));
-            break;
-        case 'Semanal':
-            const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...
-            const diff = today - (dayOfWeek === 0 ? 6 : dayOfWeek - 1); // Get to last Monday
-            periodStartDate = new Date(currentYear, currentMonth, diff);
-            periodEndDate = new Date(currentYear, currentMonth, diff + 6);
-            break;
-        case 'Quincenal':
-            if (today <= 15) {
-                // First fortnight
-                periodStartDate = new Date(currentYear, currentMonth, 1);
-                periodEndDate = new Date(currentYear, currentMonth, 15);
+    let dominantFrequency = 'Mensual'; // Default
+    const getPayDaysForMonth = (year, month) => {
+        const payDays = [];
+        const monthDays = new Date(year, month + 1, 0).getDate();
+        const salaries = appState.userProfile.salaries || [];
+        salaries.forEach(salary => {
+            const { recurrence } = salary;
+            if (!recurrence)
+                return;
+            switch (recurrence.type) {
+                case 'Semanal':
+                    if (recurrence.dayOfWeek) {
+                        const targetDayIndex = dayNameToIndex[recurrence.dayOfWeek];
+                        for (let day = 1; day <= monthDays; day++) {
+                            const date = new Date(year, month, day);
+                            if (date.getDay() === targetDayIndex)
+                                payDays.push(date);
+                        }
+                    }
+                    break;
+                case 'Quincenal':
+                case 'Mensual':
+                    if (recurrence.daysOfMonth) {
+                        recurrence.daysOfMonth.forEach(day => {
+                            if (day > 0 && day <= monthDays)
+                                payDays.push(new Date(year, month, day));
+                        });
+                    }
+                    break;
+            }
+        });
+        return payDays;
+    };
+    const salaries = appState.userProfile.salaries || [];
+    if (salaries.length > 0) {
+        // Determine dominant frequency from salaries ONLY
+        if (salaries.some(s => s.recurrence.type === 'Diario'))
+            dominantFrequency = 'Diario';
+        else if (salaries.some(s => s.recurrence.type === 'Semanal'))
+            dominantFrequency = 'Semanal';
+        else if (salaries.some(s => s.recurrence.type === 'Quincenal'))
+            dominantFrequency = 'Quincenal';
+        // Get all paydays around the current date to find the current period
+        const allPayDays = [];
+        for (let m = -1; m <= 1; m++) { // Check previous, current, and next month
+            const d = new Date(currentYear, currentMonth + m, 1);
+            allPayDays.push(...getPayDaysForMonth(d.getFullYear(), d.getMonth()));
+        }
+        allPayDays.sort((a, b) => a.getTime() - b.getTime());
+        const todayTimestamp = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const lastPayDay = [...allPayDays].filter(d => d.getTime() <= todayTimestamp).pop();
+        const nextPayDay = allPayDays.find(d => d.getTime() > todayTimestamp);
+        if (lastPayDay) {
+            periodStartDate = lastPayDay;
+            if (nextPayDay) {
+                periodEndDate = new Date(nextPayDay);
+                periodEndDate.setDate(periodEndDate.getDate() - 1);
             }
             else {
-                // Second fortnight
-                periodStartDate = new Date(currentYear, currentMonth, 16);
-                periodEndDate = new Date(currentYear, currentMonth, daysInCurrentMonth);
+                // If no "next" payday, assume the period lasts until the typical next cycle
+                periodEndDate = new Date(lastPayDay);
+                if (dominantFrequency === 'Mensual')
+                    periodEndDate.setMonth(periodEndDate.getMonth() + 1);
+                else if (dominantFrequency === 'Quincenal')
+                    periodEndDate.setDate(periodEndDate.getDate() + 14);
+                else
+                    periodEndDate.setDate(periodEndDate.getDate() + 6);
             }
-            break;
-        case 'Mensual':
-        default:
-            periodStartDate = new Date(currentYear, currentMonth, 1);
-            periodEndDate = new Date(currentYear, currentMonth, daysInCurrentMonth);
-            break;
+        }
+    }
+    if (!periodStartDate) {
+        // Fallback if no salaries are set or no period could be determined
+        periodStartDate = new Date(currentYear, currentMonth, 1);
+        periodEndDate = new Date(currentYear, currentMonth, new Date(currentYear, currentMonth + 1, 0).getDate());
+        dominantFrequency = 'Mensual';
     }
     // --- Calculate values for the current period ---
     const incomeInCurrentPeriod = calculateValueInDateRange(appState.incomeRecords, periodStartDate, periodEndDate);
     const expenseInCurrentPeriod = calculateValueInDateRange(appState.expenseRecords, periodStartDate, periodEndDate);
     // --- Calculate "Restante" (Remaining) with carry-over logic ---
-    // 1. Determine the absolute start time of any record keeping.
     const timestampsFromIds = [...appState.incomeRecords, ...appState.expenseRecords]
-        .map(r => {
-        const parts = r.id.split('-');
-        const lastPart = parts.pop();
-        if (!lastPart)
-            return null;
-        // Handle cases like 'inc-sal-sal-TIMESTAMP'
-        const potentialTimestampStr = lastPart.split('-').pop();
-        if (potentialTimestampStr) {
-            const timestamp = parseInt(potentialTimestampStr, 10);
-            if (!isNaN(timestamp))
-                return timestamp;
-        }
-        return null;
-    })
-        .filter(ts => ts !== null);
-    const datesFromUniqueRecords = [];
-    const processRecordsForDates = (records) => {
-        records.forEach(record => {
-            if (record.type === 'Único') {
-                if (record.isGroup) {
-                    record.items?.forEach(item => {
-                        if (item.date) {
-                            datesFromUniqueRecords.push(new Date(item.date + 'T00:00:00').getTime());
-                        }
-                    });
-                }
-                else if (record.date) {
-                    datesFromUniqueRecords.push(new Date(record.date + 'T00:00:00').getTime());
-                }
-            }
-        });
-    };
-    processRecordsForDates(appState.incomeRecords);
-    processRecordsForDates(appState.expenseRecords);
-    const allHistoricalTimestamps = [...timestampsFromIds, ...datesFromUniqueRecords];
-    const startOfTime = allHistoricalTimestamps.length > 0 ? new Date(Math.min(...allHistoricalTimestamps)) : now;
-    // 2. Calculate the carry-over balance from all previous periods.
-    // This is the total balance from the beginning of time up to the day before the current period starts.
+        .map(r => parseInt(r.id.split('-').pop(), 10))
+        .filter(ts => !isNaN(ts));
+    const startOfTime = timestampsFromIds.length > 0 ? new Date(Math.min(...timestampsFromIds)) : now;
     const dayBeforeCurrentPeriod = new Date(periodStartDate);
     dayBeforeCurrentPeriod.setDate(dayBeforeCurrentPeriod.getDate() - 1);
-    dayBeforeCurrentPeriod.setHours(23, 59, 59, 999);
     const totalIncomeBeforeCurrentPeriod = calculateValueInDateRange(appState.incomeRecords, startOfTime, dayBeforeCurrentPeriod);
     const totalExpenseBeforeCurrentPeriod = calculateValueInDateRange(appState.expenseRecords, startOfTime, dayBeforeCurrentPeriod);
     const carryOverAmount = totalIncomeBeforeCurrentPeriod - totalExpenseBeforeCurrentPeriod;
-    // 3. The remaining amount is the projected balance at the end of the current period.
     const remainingAmount = carryOverAmount + incomeInCurrentPeriod - expenseInCurrentPeriod;
     // --- Monthly projected values for the secondary display ---
     const monthlyIncome = calculateProjectedMonthValue(appState.incomeRecords, currentYear, currentMonth);
@@ -348,11 +358,10 @@ export const renderDashboardView = (container, navigate) => {
     frequencyLabelEl.className = 'frequency-label';
     frequencyLabelEl.textContent = dominantFrequency;
     primaryValueWrapper.appendChild(frequencyLabelEl);
-    // THEN add the primary value (Net Income for the period)
-    const netIncomeForPeriod = incomeInCurrentPeriod - expenseInCurrentPeriod;
+    // THEN add the primary value (Income for the period)
     const incomePrimaryValueEl = document.createElement('div');
-    incomePrimaryValueEl.className = `primary-value ${netIncomeForPeriod >= 0 ? 'income' : 'expense'}`; // Green for positive, red for negative
-    incomePrimaryValueEl.textContent = formatCurrency(netIncomeForPeriod, { includeSymbol: true });
+    incomePrimaryValueEl.className = 'primary-value income';
+    incomePrimaryValueEl.textContent = formatCurrency(incomeInCurrentPeriod, { includeSymbol: true });
     primaryValueWrapper.appendChild(incomePrimaryValueEl);
     incomeCard.appendChild(incomeCardTitle);
     incomeCard.appendChild(primaryValueWrapper);
@@ -467,8 +476,8 @@ export const renderDashboardView = (container, navigate) => {
                 ...appState.expenseRecords
             ];
             combined.sort((a, b) => {
-                const timeA = parseInt(a.id.split('-')[1], 10);
-                const timeB = parseInt(b.id.split('-')[1], 10);
+                const timeA = parseInt(a.id.split('-').pop(), 10);
+                const timeB = parseInt(b.id.split('-').pop(), 10);
                 return timeB - timeA; // Newest first
             });
             recordsToRender = combined;

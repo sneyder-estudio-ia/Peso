@@ -112,11 +112,20 @@ export const renderFinancialInfoView = (container: HTMLElement, navigate: Naviga
     // --- Header ---
     const header = document.createElement('div');
     header.className = 'income-page-header';
+
     const backButton = document.createElement('button');
     backButton.className = 'btn btn-back';
     backButton.innerHTML = '&larr; Volver';
     backButton.onclick = () => navigate('dashboard');
     header.appendChild(backButton);
+    
+    const forecastButton = document.createElement('button');
+    forecastButton.className = 'btn btn-option';
+    forecastButton.textContent = 'Ver Pronóstico';
+    forecastButton.style.marginLeft = 'auto';
+    forecastButton.onclick = () => navigate('financialForecast');
+    header.appendChild(forecastButton);
+    
     container.appendChild(header);
 
     const title = document.createElement('h2');

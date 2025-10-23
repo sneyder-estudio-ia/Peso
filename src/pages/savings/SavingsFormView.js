@@ -311,7 +311,7 @@ export const renderSavingsFormView = (container, navigate, type, recordId) => {
     }
     if (isEditMode && recordToEdit) {
         nameField.querySelector('input').value = recordToEdit.name;
-        amountField.querySelector('input').value = formatCurrency(recordToEdit.amount).replace(/\./g, '').replace(',', ',');
+        amountField.querySelector('input').value = formatCurrency(recordToEdit.amount);
         goalAmountField.querySelector('input').value = formatCurrency(recordToEdit.goalAmount);
         descriptionField.querySelector('textarea').value = recordToEdit.description;
         const storageRadio = form.querySelector(`input[name="savings-storage-type"][value="${recordToEdit.storageType}"]`);
