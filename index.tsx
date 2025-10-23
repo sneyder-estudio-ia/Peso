@@ -385,14 +385,17 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
                 <span class="nav-button-arrow">&rarr;</span>
             </div>
         </div>
-        <div class="filter-card" style="text-align: center; margin-top: auto; padding-top: 20px; border-top: 1px solid #30363d;">
-            <img src="https://i.postimg.cc/mDgqGyw3/Picsart-25-03-28-04-00-43-410.png" alt="Sneyder Estudio Logo" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;">
-            <h4 style="margin: 5px 0; color: #c9d1d9; font-weight: 600;">Sneyder Estudio</h4>
-            <p style="margin: 5px 0; font-size: 0.8rem; color: #8b949e;">sneyderestudio@gmail.com</p>
-            <a href="https://wa.me/50672712037" target="_blank" rel="noopener noreferrer" class="btn btn-income" style="width: 100%; margin-top: 10px; text-decoration: none; box-sizing: border-box;">
-                Contactar por WhatsApp
-            </a>
-            <p style="margin: 15px 0 0; font-size: 0.8rem; color: #8b949e; font-style: italic;">Hacemos apps y webs a tu medida. ¡Contáctanos!</p>
+        <div class="nav-panel-footer">
+            <hr style="border: none; height: 1px; background-color: #30363d; margin: 0 0 20px 0;">
+            <div style="text-align: center;">
+                <img src="https://i.postimg.cc/mDgqGyw3/Picsart-25-03-28-04-00-43-410.png" alt="Sneyder Estudio Logo" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;">
+                <h4 style="margin: 5px 0; color: #c9d1d9; font-weight: 600;">Sneyder Estudio</h4>
+                <p style="margin: 5px 0; font-size: 0.8rem; color: #8b949e;">sneyderestudio@gmail.com</p>
+                <a href="https://wa.me/50672712037" target="_blank" rel="noopener noreferrer" class="btn btn-income" style="width: 100%; margin-top: 10px; text-decoration: none; box-sizing: border-box;">
+                    Contactar por WhatsApp
+                </a>
+                <p style="margin: 15px 0 0; font-size: 0.8rem; color: #8b949e; font-style: italic;">Hacemos apps y webs a tu medida. ¡Contáctanos!</p>
+            </div>
         </div>
     `;
 

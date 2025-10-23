@@ -871,8 +871,15 @@ textarea.form-input {
     display: flex;
     flex-direction: column;
     gap: 15px; /* Re-apply gap to content */
+    overflow-y: auto; /* Allow this main content area to scroll */
+    flex: 1; /* Make it grow to fill available space */
+    min-height: 0; /* Prevents content from overflowing its container in a flex context */
 }
 
+.nav-panel-footer {
+    flex-shrink: 0; /* Prevents footer from shrinking */
+    padding-top: 15px;
+}
 
 .nav-title {
     font-size: 1.5rem;
@@ -919,7 +926,7 @@ textarea.form-input {
         transform: translateX(-100%);
         transition: transform 0.3s ease-in-out;
         box-shadow: 5px 0 15px rgba(0,0,0,0.3);
-        overflow-y: auto;
+        /* overflow-y: auto; REMOVED */
         width: 85vw;
         max-width: 320px;
         display: flex;
@@ -939,6 +946,7 @@ textarea.form-input {
 
     .nav-panel {
         display: flex;
+        max-height: calc(100vh - 40px); /* Constrain height for scrolling on desktop */
     }
     
     .stats-panel {
