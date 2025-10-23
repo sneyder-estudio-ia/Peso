@@ -1,4 +1,4 @@
-import { createCard, createSimpleCard } from '../../components/common.js';
+import { createCard } from '../../components/common.js';
 import { formatCurrency } from '../../utils/currency.js';
 import { appState } from '../../state/store.js';
 import { createIncomeRecordCard, createExpenseRecordCard } from '../../components/RecordCard.js';
@@ -341,10 +341,44 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     type FilterType = 'all' | 'income' | 'expense';
     let activeFilter: FilterType = 'all';
 
-    const listFilterCard = createSimpleCard('Listado');
+    const listContainerCard = document.createElement('div');
+    listContainerCard.className = 'card';
+
+    const listHeader = document.createElement('div');
+    listHeader.className = 'collapsible-header';
+    listHeader.style.cursor = 'pointer';
+
+    const listTitle = document.createElement('h2');
+    listTitle.className = 'card-title';
+    listTitle.textContent = 'Listado';
+    listTitle.style.margin = '0';
+
+    const collapseIcon = document.createElement('span');
+    collapseIcon.className = 'collapse-icon';
+    collapseIcon.innerHTML = '&#9660;'; // Starts collapsed
+
+    listHeader.appendChild(listTitle);
+    listHeader.appendChild(collapseIcon);
+
+    const listContent = document.createElement('div');
+    listContent.className = 'collapsible-content';
+    listContent.style.display = 'none'; // Starts collapsed
+    listContent.style.marginTop = '15px';
+
+    listHeader.onclick = () => {
+        const isCollapsed = listContent.style.display === 'none';
+        if (isCollapsed) {
+            listContent.style.display = 'block';
+            collapseIcon.innerHTML = '&#9650;';
+        } else {
+            listContent.style.display = 'none';
+            collapseIcon.innerHTML = '&#9660;';
+        }
+    };
+    
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'filter-container';
-    buttonContainer.style.marginTop = '10px';
+    buttonContainer.style.marginTop = '0'; // Removed margin as parent has it
     
     const allFilterButton = document.createElement('button');
     allFilterButton.className = 'btn btn-filter active';
@@ -364,10 +398,12 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     buttonContainer.appendChild(allFilterButton);
     buttonContainer.appendChild(incomeFilterButton);
     buttonContainer.appendChild(expenseFilterButton);
-    listFilterCard.appendChild(buttonContainer);
+    listContent.appendChild(buttonContainer);
 
     const dashboardListContainer = document.createElement('div');
     dashboardListContainer.id = 'dashboard-list-container';
+    listContent.appendChild(dashboardListContainer);
+
 
     const renderFilteredList = () => {
         dashboardListContainer.innerHTML = '';
@@ -429,11 +465,13 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     incomeFilterButton.onclick = handleFilterClick;
     expenseFilterButton.onclick = handleFilterClick;
 
+    listContainerCard.appendChild(listHeader);
+    listContainerCard.appendChild(listContent);
+
     container.appendChild(incomeCard);
     container.appendChild(expenseCard);
     container.appendChild(savingsCard);
-    container.appendChild(listFilterCard);
-    container.appendChild(dashboardListContainer);
+    container.appendChild(listContainerCard);
     
     renderFilteredList(); // Initial render with 'all' filter
 };
