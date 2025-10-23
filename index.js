@@ -27,8 +27,9 @@ import { renderSavingsDetailsView } from './src/pages/details/SavingsDetailsView
 import { renderStatisticsView } from './src/pages/statistics/StatisticsView.js';
 import { renderSettingsView } from './src/pages/settings/SettingsView.js';
 import { renderArchivedListView } from './src/pages/archived/ArchivedListView.js';
-import { appState, subscribe, initializeAppState } from './src/state/store.js';
+import { appState, subscribe, initializeAppState, saveState } from './src/state/store.js';
 import { formatCurrency } from './src/utils/currency.js';
+import { showToast } from './src/components/Toast.js';
 const root = document.getElementById('root');
 const mainAppTitle = document.getElementById('app-title-main');
 const statsPanel = document.getElementById('stats-panel');
@@ -443,6 +444,195 @@ overlay?.addEventListener('click', () => {
 // --- Initial App Setup ---
 async function main() {
     await initializeAppState();
+    const archiveOldUniqueRecords = async () => {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Compare against the start of today
+        const expenseRecordsToArchive = [];
+        const remainingExpenseRecords = [];
+        const incomeRecordsToArchive = [];
+        const remainingIncomeRecords = [];
+        let stateChanged = false;
+        const getPayDaysForMonth = (year, month) => {
+            const payDays = [];
+            const monthDays = new Date(year, month + 1, 0).getDate();
+            const salaries = appState.userProfile.salaries || [];
+            salaries.forEach(salary => {
+                const { recurrence } = salary;
+                if (!recurrence)
+                    return;
+                switch (recurrence.type) {
+                    case 'Semanal':
+                        if (recurrence.dayOfWeek) {
+                            const targetDayIndex = dayNameToIndex[recurrence.dayOfWeek];
+                            if (targetDayIndex !== undefined) {
+                                for (let day = 1; day <= monthDays; day++) {
+                                    const date = new Date(year, month, day);
+                                    if (date.getDay() === targetDayIndex)
+                                        payDays.push(day);
+                                }
+                            }
+                        }
+                        break;
+                    case 'Quincenal':
+                    case 'Mensual':
+                        if (recurrence.daysOfMonth) {
+                            recurrence.daysOfMonth.forEach(day => { if (day > 0 && day <= monthDays)
+                                payDays.push(day); });
+                        }
+                        break;
+                    case 'Diario':
+                    default: break;
+                }
+            });
+            return [...new Set(payDays)].sort((a, b) => a - b);
+        };
+        const getPeriodForDate = (dateToCheck) => {
+            const year = dateToCheck.getFullYear();
+            const month = dateToCheck.getMonth();
+            const monthPayDays = getPayDaysForMonth(year, month);
+            if (monthPayDays.length === 0) { // Fallback to monthly period if no salaries are set
+                const start = new Date(year, month, 1);
+                const end = new Date(year, month + 1, 0);
+                end.setHours(23, 59, 59, 999);
+                return { start, end };
+            }
+            const allPayDaysAsDates = [];
+            // Check previous, current, and next month to find surrounding paydays
+            for (let m = -1; m <= 1; m++) {
+                const d = new Date(year, month + m, 1);
+                getPayDaysForMonth(d.getFullYear(), d.getMonth()).forEach(day => {
+                    allPayDaysAsDates.push(new Date(d.getFullYear(), d.getMonth(), day));
+                });
+            }
+            allPayDaysAsDates.sort((a, b) => a.getTime() - b.getTime());
+            const periodStartDate = [...allPayDaysAsDates].filter(d => d <= dateToCheck).pop();
+            if (!periodStartDate)
+                return null;
+            const nextPayDay = allPayDaysAsDates.find(d => d > periodStartDate);
+            if (!nextPayDay)
+                return null;
+            const periodEndDate = new Date(nextPayDay);
+            periodEndDate.setDate(periodEndDate.getDate() - 1);
+            periodEndDate.setHours(23, 59, 59, 999);
+            return { start: periodStartDate, end: periodEndDate };
+        };
+        // --- Process Expenses ---
+        for (const record of appState.expenseRecords) {
+            if (record.type === 'Único' && !record.isGroup && record.date) {
+                const expenseDate = new Date(record.date + 'T12:00:00');
+                if (expenseDate < now) {
+                    const period = getPeriodForDate(expenseDate);
+                    if (period && period.end < now) {
+                        expenseRecordsToArchive.push(record);
+                        stateChanged = true;
+                    }
+                    else {
+                        remainingExpenseRecords.push(record);
+                    }
+                }
+                else {
+                    remainingExpenseRecords.push(record);
+                }
+            }
+            else if (record.type === 'Único' && record.isGroup && record.items) {
+                const remainingItems = [];
+                let totalAmountOfRemainingItems = 0;
+                for (const item of record.items) {
+                    if (item.date) {
+                        const itemDate = new Date(item.date + 'T12:00:00');
+                        if (itemDate < now) {
+                            const period = getPeriodForDate(itemDate);
+                            if (period && period.end < now) {
+                                const syntheticRecord = {
+                                    id: `exp-archived-${Date.now()}-${Math.random()}`,
+                                    type: 'Único',
+                                    name: item.name,
+                                    category: `Grupo: ${record.name}`,
+                                    amount: item.amount,
+                                    date: item.date,
+                                    description: record.description || `Gasto del grupo '${record.name}'`
+                                };
+                                expenseRecordsToArchive.push(syntheticRecord);
+                                stateChanged = true;
+                            }
+                            else {
+                                remainingItems.push(item);
+                                totalAmountOfRemainingItems += item.amount;
+                            }
+                        }
+                        else {
+                            remainingItems.push(item);
+                            totalAmountOfRemainingItems += item.amount;
+                        }
+                    }
+                    else {
+                        remainingItems.push(item);
+                        totalAmountOfRemainingItems += item.amount;
+                    }
+                }
+                if (remainingItems.length > 0) {
+                    if (remainingItems.length < record.items.length) {
+                        record.items = remainingItems;
+                        record.amount = totalAmountOfRemainingItems;
+                        stateChanged = true;
+                    }
+                    remainingExpenseRecords.push(record);
+                }
+                else {
+                    stateChanged = true; // The group is now empty and will be removed.
+                }
+            }
+            else {
+                remainingExpenseRecords.push(record);
+            }
+        }
+        // --- Process Incomes ---
+        for (const record of appState.incomeRecords) {
+            if (record.type === 'Único' && record.date) {
+                const incomeDate = new Date(record.date + 'T12:00:00');
+                if (incomeDate < now) {
+                    const period = getPeriodForDate(incomeDate);
+                    if (period && period.end < now) {
+                        incomeRecordsToArchive.push(record);
+                        stateChanged = true;
+                    }
+                    else {
+                        remainingIncomeRecords.push(record);
+                    }
+                }
+                else {
+                    remainingIncomeRecords.push(record);
+                }
+            }
+            else {
+                remainingIncomeRecords.push(record);
+            }
+        }
+        if (stateChanged) {
+            appState.expenseRecords = remainingExpenseRecords;
+            appState.incomeRecords = remainingIncomeRecords;
+            expenseRecordsToArchive.forEach(recordToArchive => {
+                appState.archivedRecords.push({
+                    ...recordToArchive,
+                    archivedAt: Date.now(),
+                    originalType: 'expense'
+                });
+            });
+            incomeRecordsToArchive.forEach(recordToArchive => {
+                appState.archivedRecords.push({
+                    ...recordToArchive,
+                    archivedAt: Date.now(),
+                    originalType: 'income'
+                });
+            });
+            await saveState(appState);
+            const totalArchived = expenseRecordsToArchive.length + incomeRecordsToArchive.length;
+            if (totalArchived > 0) {
+                showToast(`${totalArchived} registro(s) antiguo(s) ha(n) sido archivado(s).`);
+            }
+        }
+    };
+    await archiveOldUniqueRecords();
     if (root && mainAppTitle && statsPanel && navPanel) {
         // Create all view containers on startup
         createViewContainer('dashboard');

@@ -96,162 +96,190 @@ export const renderExpenseDetailsView = (container: HTMLElement, navigate: Navig
     container.appendChild(header);
     container.appendChild(title);
 
-    if (record.isGroup && record.items && record.items.length > 0) {
-        // --- 1. Calculate Stats ---
-        const totalAmount = record.amount;
-        const itemCount = record.items.length;
+    if (record.isGroup) {
+        if (record.items && record.items.length > 0) {
+            // --- 1. Calculate Stats ---
+            const totalAmount = record.amount;
+            const itemCount = record.items.length;
 
-        // --- 2. Render Summary ---
-        const detailsContainer = document.createElement('div');
-        detailsContainer.className = 'details-container';
+            // --- 2. Render Summary ---
+            const detailsContainer = document.createElement('div');
+            detailsContainer.className = 'details-container';
+            
+            detailsContainer.appendChild(createDetailItem('Nombre del Grupo:', record.name));
+            detailsContainer.appendChild(createDetailItem('Tipo de Grupo:', record.type));
+            detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(totalAmount, { includeSymbol: true })));
+            detailsContainer.appendChild(createDetailItem('Número de Gastos:', itemCount));
+            container.appendChild(detailsContainer);
         
-        detailsContainer.appendChild(createDetailItem('Nombre del Grupo:', record.name));
-        detailsContainer.appendChild(createDetailItem('Tipo de Grupo:', record.type));
-        detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(totalAmount, { includeSymbol: true })));
-        detailsContainer.appendChild(createDetailItem('Número de Gastos:', itemCount));
-        container.appendChild(detailsContainer);
-    
-        // --- 3. Render Items List ---
-        const itemsTitle = document.createElement('h3');
-        itemsTitle.className = 'card-title';
-        itemsTitle.textContent = 'Desglose de Gastos';
-        itemsTitle.style.marginTop = '30px';
-        container.appendChild(itemsTitle);
-    
-        const itemsListContainer = document.createElement('div');
-        itemsListContainer.id = 'expense-list-container'; // Reuse style for gap
-        container.appendChild(itemsListContainer);
-    
-        // Sort items by amount, descending
-        record.items.sort((a,b) => b.amount - a.amount).forEach(item => { 
-            const percentage = totalAmount > 0 ? (item.amount / totalAmount) * 100 : 0;
+            // --- 3. Render Items List ---
+            const itemsTitle = document.createElement('h3');
+            itemsTitle.className = 'card-title';
+            itemsTitle.textContent = 'Desglose de Gastos';
+            itemsTitle.style.marginTop = '30px';
+            container.appendChild(itemsTitle);
+        
+            const itemsListContainer = document.createElement('div');
+            itemsListContainer.id = 'expense-list-container'; // Reuse style for gap
+            container.appendChild(itemsListContainer);
+        
+            // Sort items by amount, descending
+            record.items.sort((a,b) => b.amount - a.amount).forEach(item => { 
+                const percentage = totalAmount > 0 ? (item.amount / totalAmount) * 100 : 0;
 
-            const itemCard = document.createElement('div');
-            itemCard.className = 'expense-group-item-card';
+                const itemCard = document.createElement('div');
+                itemCard.className = 'expense-group-item-card';
 
-            let dateInfo = '';
-            if (item.recurrence) {
-                const isCompleted = !item.isInfinite && item.durationInMonths && (item.installmentsPaid ?? 0) >= item.durationInMonths;
-                if(isCompleted) {
-                    dateInfo = 'Completado';
-                } else {
-                    const nextDate = getNextPaymentDate(item.recurrence);
-                    if (nextDate) {
-                        dateInfo = `Próximo pago: ${nextDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
+                let dateInfo = '';
+                if (item.recurrence) {
+                    const isCompleted = !item.isInfinite && item.durationInMonths && (item.installmentsPaid ?? 0) >= item.durationInMonths;
+                    if(isCompleted) {
+                        dateInfo = 'Completado';
                     } else {
-                        dateInfo = formatRecurrence(item.recurrence); // fallback
+                        const nextDate = getNextPaymentDate(item.recurrence);
+                        if (nextDate) {
+                            dateInfo = `Próximo pago: ${nextDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`;
+                        } else {
+                            dateInfo = formatRecurrence(item.recurrence); // fallback
+                        }
                     }
+                } else {
+                    dateInfo = item.date || '';
                 }
-            } else {
-                dateInfo = item.date || '';
-            }
 
-            itemCard.innerHTML = `
-                <div class="item-main-info">
-                    <div class="item-name-details">
-                        <span class="item-name">${item.name}</span>
-                        <span class="item-date">${dateInfo}</span>
+                itemCard.innerHTML = `
+                    <div class="item-main-info">
+                        <div class="item-name-details">
+                            <span class="item-name">${item.name}</span>
+                            <span class="item-date">${dateInfo}</span>
+                        </div>
+                        <span class="item-amount">${formatCurrency(item.amount, { includeSymbol: true })}</span>
                     </div>
-                    <span class="item-amount">${formatCurrency(item.amount, { includeSymbol: true })}</span>
-                </div>
-                <div class="item-progress-info">
-                    <div class="progress-bar">
-                        <div class="progress-bar-fill" style="width: ${percentage}%; background-color: #f85149;"></div>
+                    <div class="item-progress-info">
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: ${percentage}%; background-color: #f85149;"></div>
+                        </div>
+                        <span class="item-percentage">${percentage.toFixed(1)}%</span>
                     </div>
-                    <span class="item-percentage">${percentage.toFixed(1)}%</span>
-                </div>
-            `;
-            itemsListContainer.appendChild(itemCard);
-        });
-
-    } else if (record.isGroup) {
-        // --- Group with no items ---
-        const detailsContainer = document.createElement('div');
-        detailsContainer.className = 'details-container';
-        detailsContainer.appendChild(createDetailItem('Nombre del Grupo:', record.name));
-        detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(record.amount, { includeSymbol: true })));
-        container.appendChild(detailsContainer);
-
-        const emptyMessage = document.createElement('p');
-        emptyMessage.className = 'empty-list-message';
-        emptyMessage.textContent = 'Este grupo no contiene gastos.';
-        container.appendChild(emptyMessage);
+                `;
+                itemsListContainer.appendChild(itemCard);
+            });
+        } else {
+            // --- Group with no items ---
+            const detailsContainer = document.createElement('div');
+            detailsContainer.className = 'details-container';
+            detailsContainer.appendChild(createDetailItem('Nombre del Grupo:', record.name));
+            detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(record.amount, { includeSymbol: true })));
+            container.appendChild(detailsContainer);
+    
+            const emptyMessage = document.createElement('p');
+            emptyMessage.className = 'empty-list-message';
+            emptyMessage.textContent = 'Este grupo no contiene gastos.';
+            container.appendChild(emptyMessage);
+        }
 
     } else {
-        // --- Donut Chart for Recurrent Expenses (only if not infinite) ---
-        if (record.type === 'Recurrente' && !record.isInfinite && record.totalAmount && record.durationInMonths && typeof record.installmentsPaid !== 'undefined') {
-            const totalPaid = (record.installmentsPaid || 0) * record.amount;
-            const percentage = record.totalAmount > 0 ? (totalPaid / record.totalAmount) * 100 : 0;
-            const circumference = 2 * Math.PI * 15.9154943092; // Radius that gives circumference of 100
-            const offset = circumference - (percentage / 100) * circumference;
+        // --- SINGLE RECORD LOGIC ---
+        if (record.type === 'Único') {
+            // --- UNIQUE EXPENSE VIEW ---
+            const amountCard = document.createElement('div');
+            amountCard.className = 'card';
+            amountCard.style.marginTop = '20px';
+            amountCard.innerHTML = `
+                <div class="label">MONTO DEL GASTO</div>
+                <div class="primary-value expense">${formatCurrency(record.amount, { includeSymbol: true })}</div>
+            `;
+            container.appendChild(amountCard);
 
-            const chartContainer = document.createElement('div');
-            chartContainer.className = 'chart-container';
-
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('viewBox', '0 0 36 36');
-            svg.classList.add('donut-svg');
-
-            const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            ring.classList.add('donut-ring');
-            ring.setAttribute('cx', '18');
-            ring.setAttribute('cy', '18');
-            ring.setAttribute('r', '15.9154943092');
-
-            const segment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            segment.classList.add('donut-segment');
-            segment.setAttribute('cx', '18');
-            segment.setAttribute('cy', '18');
-            segment.setAttribute('r', '15.9154943092');
-            segment.setAttribute('stroke-dasharray', `${circumference} ${circumference}`);
-            segment.setAttribute('stroke-dashoffset', String(offset));
-
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.classList.add('donut-text');
-            text.setAttribute('x', '50%');
-            text.setAttribute('y', '50%');
-            text.setAttribute('dy', '0.3em');
-            text.textContent = `${Math.round(percentage)}%`;
-
-            svg.appendChild(ring);
-            svg.appendChild(segment);
-            svg.appendChild(text);
-            chartContainer.appendChild(svg);
-            container.appendChild(chartContainer);
-        }
-
-        const detailsContainer = document.createElement('div');
-        detailsContainer.className = 'details-container';
-        
-        detailsContainer.appendChild(createDetailItem('Nombre:', record.name));
-        detailsContainer.appendChild(createDetailItem('Tipo:', record.type));
-        detailsContainer.appendChild(createDetailItem('Categoría:', record.category));
-        
-        if (record.type === 'Recurrente' && record.totalAmount && !record.isInfinite) {
-            detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(record.totalAmount, { includeSymbol: true })));
-            detailsContainer.appendChild(createDetailItem('Monto de Cuota:', formatCurrency(record.amount, { includeSymbol: true })));
-        } else {
-            detailsContainer.appendChild(createDetailItem('Monto:', formatCurrency(record.amount, { includeSymbol: true })));
-        }
-
-        if (record.date) {
-            detailsContainer.appendChild(createDetailItem('Fecha:', record.date));
-        }
-        if (record.recurrence) {
-            detailsContainer.appendChild(createDetailItem('Frecuencia:', formatRecurrence(record.recurrence)));
-        }
-        if (record.durationInMonths && !record.isInfinite) {
-            detailsContainer.appendChild(createDetailItem('Duración:', `${record.durationInMonths} meses`));
-        }
-        if (typeof record.installmentsPaid !== 'undefined' && !record.isInfinite) {
-            detailsContainer.appendChild(createDetailItem('Meses Abonados:', record.installmentsPaid));
-             if (record.durationInMonths) {
-                const monthsRemaining = record.durationInMonths - record.installmentsPaid;
-                detailsContainer.appendChild(createDetailItem('Meses Restantes:', monthsRemaining >= 0 ? monthsRemaining : 0));
+            const detailsContainer = document.createElement('div');
+            detailsContainer.className = 'details-container';
+            
+            detailsContainer.appendChild(createDetailItem('Nombre:', record.name));
+            detailsContainer.appendChild(createDetailItem('Categoría:', record.category));
+            
+            if (record.date) {
+                const date = new Date(record.date + 'T12:00:00'); // Avoid timezone issues
+                const formattedDate = new Intl.DateTimeFormat('es-ES', { dateStyle: 'full' }).format(date);
+                detailsContainer.appendChild(createDetailItem('Fecha:', formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1)));
             }
-        }
-        detailsContainer.appendChild(createDetailItem('Descripción:', record.description || 'N/A'));
+            
+            detailsContainer.appendChild(createDetailItem('Descripción:', record.description || 'N/A'));
 
-        container.appendChild(detailsContainer);
+            container.appendChild(detailsContainer);
+
+        } else { // RECURRENT SINGLE EXPENSE VIEW
+            // --- Donut Chart for Recurrent Expenses (only if not infinite) ---
+            if (!record.isInfinite && record.totalAmount && record.durationInMonths && typeof record.installmentsPaid !== 'undefined') {
+                const totalPaid = (record.installmentsPaid || 0) * record.amount;
+                const percentage = record.totalAmount > 0 ? (totalPaid / record.totalAmount) * 100 : 0;
+                const circumference = 2 * Math.PI * 15.9154943092; // Radius that gives circumference of 100
+                const offset = circumference - (percentage / 100) * circumference;
+
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'chart-container';
+
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('viewBox', '0 0 36 36');
+                svg.classList.add('donut-svg');
+
+                const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                ring.classList.add('donut-ring');
+                ring.setAttribute('cx', '18');
+                ring.setAttribute('cy', '18');
+                ring.setAttribute('r', '15.9154943092');
+
+                const segment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                segment.classList.add('donut-segment');
+                segment.setAttribute('cx', '18');
+                segment.setAttribute('cy', '18');
+                segment.setAttribute('r', '15.9154943092');
+                segment.setAttribute('stroke-dasharray', `${circumference} ${circumference}`);
+                segment.setAttribute('stroke-dashoffset', String(offset));
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.classList.add('donut-text');
+                text.setAttribute('x', '50%');
+                text.setAttribute('y', '50%');
+                text.setAttribute('dy', '0.3em');
+                text.textContent = `${Math.round(percentage)}%`;
+
+                svg.appendChild(ring);
+                svg.appendChild(segment);
+                svg.appendChild(text);
+                chartContainer.appendChild(svg);
+                container.appendChild(chartContainer);
+            }
+
+            const detailsContainer = document.createElement('div');
+            detailsContainer.className = 'details-container';
+            
+            detailsContainer.appendChild(createDetailItem('Nombre:', record.name));
+            detailsContainer.appendChild(createDetailItem('Tipo:', record.type));
+            detailsContainer.appendChild(createDetailItem('Categoría:', record.category));
+            
+            if (record.totalAmount && !record.isInfinite) {
+                detailsContainer.appendChild(createDetailItem('Monto Total:', formatCurrency(record.totalAmount, { includeSymbol: true })));
+                detailsContainer.appendChild(createDetailItem('Monto de Cuota:', formatCurrency(record.amount, { includeSymbol: true })));
+            } else {
+                detailsContainer.appendChild(createDetailItem('Monto:', formatCurrency(record.amount, { includeSymbol: true })));
+            }
+
+            if (record.recurrence) {
+                detailsContainer.appendChild(createDetailItem('Frecuencia:', formatRecurrence(record.recurrence)));
+            }
+            if (record.durationInMonths && !record.isInfinite) {
+                detailsContainer.appendChild(createDetailItem('Duración:', `${record.durationInMonths} meses`));
+            }
+            if (typeof record.installmentsPaid !== 'undefined' && !record.isInfinite) {
+                detailsContainer.appendChild(createDetailItem('Meses Abonados:', record.installmentsPaid));
+                 if (record.durationInMonths) {
+                    const monthsRemaining = record.durationInMonths - record.installmentsPaid;
+                    detailsContainer.appendChild(createDetailItem('Meses Restantes:', monthsRemaining >= 0 ? monthsRemaining : 0));
+                }
+            }
+            detailsContainer.appendChild(createDetailItem('Descripción:', record.description || 'N/A'));
+
+            container.appendChild(detailsContainer);
+        }
     }
 };
