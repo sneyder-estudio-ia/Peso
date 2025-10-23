@@ -30,6 +30,8 @@ import { renderSettingsView } from './src/pages/settings/SettingsView.js';
 import { renderArchivedListView } from './src/pages/archived/ArchivedListView.js';
 import { renderFinancialInfoView } from './src/pages/financialInfo/FinancialInfoView.js';
 import { renderFinancialForecastView } from './src/pages/financialForecast/FinancialForecastView.js';
+import { renderPolicyAndConditionsView } from './src/pages/policyAndConditions/PolicyAndConditionsView.js';
+import { renderManualDeUsoView } from './src/pages/manual/ManualDeUsoView.js';
 import { IncomeRecord, ExpenseRecord, ExpenseSubItem } from './src/types/index.js';
 import { appState, subscribe, initializeAppState, saveState } from './src/state/store.js';
 import { formatCurrency } from './src/utils/currency.js';
@@ -56,7 +58,9 @@ type ViewType =
     | 'savingsDetails'
     | 'archivedList'
     | 'financialInfo'
-    | 'financialForecast';
+    | 'financialForecast'
+    | 'policyAndConditions'
+    | 'manualDeUso';
 
 type StatsPanelViewType = 'statistics' | 'settings';
 
@@ -342,34 +346,53 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
     }
 
     panel.innerHTML = `
-        <h2 class="nav-title">Filtro</h2>
-        <div class="filter-card">
-            <h3 class="filter-card-title">Resumen del Mes</h3>
-            ${periods.map(p => {
-                const percentage = p.income > 0 ? Math.max(0, (p.remaining / p.income) * 100) : 0;
-                return `
-                <div class="period-section">
-                    <div class="period-dates">${p.label}</div>
-                    <div class="period-values">
-                        <span class="period-income">Ingreso: ${formatCurrency(p.income, { includeSymbol: true })}</span>
-                        <span class="period-remaining">Restante: ${formatCurrency(p.remaining, { includeSymbol: true })}</span>
+        <div class="nav-panel-content">
+            <h2 class="nav-title">Filtro</h2>
+            <div class="filter-card">
+                <h3 class="filter-card-title">Resumen del Mes</h3>
+                ${periods.map(p => {
+                    const percentage = p.income > 0 ? Math.max(0, (p.remaining / p.income) * 100) : 0;
+                    return `
+                    <div class="period-section">
+                        <div class="period-dates">${p.label}</div>
+                        <div class="period-values">
+                            <span class="period-income">Ingreso: ${formatCurrency(p.income, { includeSymbol: true })}</span>
+                            <span class="period-remaining">Restante: ${formatCurrency(p.remaining, { includeSymbol: true })}</span>
+                        </div>
+                        <div class="period-progress-container">
+                            <div class="period-progress-fill" style="width: ${percentage}%;"></div>
+                            <span class="period-percentage">${Math.round(percentage)}%</span>
+                        </div>
                     </div>
-                    <div class="period-progress-container">
-                        <div class="period-progress-fill" style="width: ${percentage}%;"></div>
-                        <span class="period-percentage">${Math.round(percentage)}%</span>
-                    </div>
-                </div>
-            `}).join('')}
-             ${currentMonthPayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios (semanal, quincenal, mensual) para un resumen detallado por períodos.</p>' : ''}
-             ${currentMonthPayDays.length > 0 && periods.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">No hay ingresos para los períodos de pago actuales.</p>' : ''}
+                `}).join('')}
+                ${currentMonthPayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios (semanal, quincenal, mensual) para un resumen detallado por períodos.</p>' : ''}
+                ${currentMonthPayDays.length > 0 && periods.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">No hay ingresos para los períodos de pago actuales.</p>' : ''}
+            </div>
+            <div class="filter-card nav-button-card" id="nav-financial-info-card">
+                <h3 class="filter-card-title">Información Financiera</h3>
+                <span class="nav-button-arrow">&rarr;</span>
+            </div>
+            <div class="filter-card nav-button-card" id="nav-archived-card">
+                <h3 class="filter-card-title">Papelera de Reciclaje</h3>
+                <span class="nav-button-arrow">&rarr;</span>
+            </div>
+            <div class="filter-card nav-button-card" id="nav-policy-card">
+                <h3 class="filter-card-title">Politica y Condision</h3>
+                <span class="nav-button-arrow">&rarr;</span>
+            </div>
+            <div class="filter-card nav-button-card" id="nav-manual-card">
+                <h3 class="filter-card-title">Manual de Uso</h3>
+                <span class="nav-button-arrow">&rarr;</span>
+            </div>
         </div>
-        <div class="filter-card nav-button-card" id="nav-financial-info-card">
-            <h3 class="filter-card-title">Información Financiera</h3>
-            <span class="nav-button-arrow">&rarr;</span>
-        </div>
-        <div class="filter-card nav-button-card" id="nav-archived-card">
-            <h3 class="filter-card-title">Papelera de Reciclaje</h3>
-            <span class="nav-button-arrow">&rarr;</span>
+        <div class="filter-card" style="text-align: center; margin-top: auto; padding-top: 20px; border-top: 1px solid #30363d;">
+            <img src="https://i.postimg.cc/mDgqGyw3/Picsart-25-03-28-04-00-43-410.png" alt="Sneyder Estudio Logo" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;">
+            <h4 style="margin: 5px 0; color: #c9d1d9; font-weight: 600;">Sneyder Estudio</h4>
+            <p style="margin: 5px 0; font-size: 0.8rem; color: #8b949e;">sneyderestudio@gmail.com</p>
+            <a href="https://wa.me/50672712037" target="_blank" rel="noopener noreferrer" class="btn btn-income" style="width: 100%; margin-top: 10px; text-decoration: none; box-sizing: border-box;">
+                Contactar por WhatsApp
+            </a>
+            <p style="margin: 15px 0 0; font-size: 0.8rem; color: #8b949e; font-style: italic;">Hacemos apps y webs a tu medida. ¡Contáctanos!</p>
         </div>
     `;
 
@@ -383,6 +406,20 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
     const archivedCard = panel.querySelector('#nav-archived-card');
     archivedCard?.addEventListener('click', () => {
         navigate('archivedList');
+        mainLayout?.classList.remove('nav-open');
+        document.body.classList.remove('no-scroll');
+    });
+
+    const policyCard = panel.querySelector('#nav-policy-card');
+    policyCard?.addEventListener('click', () => {
+        navigate('policyAndConditions');
+        mainLayout?.classList.remove('nav-open');
+        document.body.classList.remove('no-scroll');
+    });
+
+    const manualCard = panel.querySelector('#nav-manual-card');
+    manualCard?.addEventListener('click', () => {
+        navigate('manualDeUso');
         mainLayout?.classList.remove('nav-open');
         document.body.classList.remove('no-scroll');
     });
@@ -446,6 +483,12 @@ const renderCurrentView = () => {
             break;
         case 'financialForecast':
             renderFinancialForecastView(viewContainers.financialForecast, navigateTo);
+            break;
+        case 'policyAndConditions':
+            renderPolicyAndConditionsView(viewContainers.policyAndConditions, navigateTo);
+            break;
+        case 'manualDeUso':
+            renderManualDeUsoView(viewContainers.manualDeUso, navigateTo);
             break;
     }
 };
@@ -731,6 +774,8 @@ async function main() {
         createViewContainer('archived');
         createViewContainer('financialInfo');
         createViewContainer('financialForecast');
+        createViewContainer('policyAndConditions');
+        createViewContainer('manualDeUso');
 
         // Subscription to automatically refresh UI on state changes
         subscribe(() => {
