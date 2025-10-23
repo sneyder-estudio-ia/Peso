@@ -291,15 +291,21 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
         <h2 class="nav-title">Filtro</h2>
         <div class="filter-card">
             <h3 class="filter-card-title">Resumen del Mes</h3>
-            ${periods.map(p => `
+            ${periods.map(p => {
+                const percentage = p.income > 0 ? Math.max(0, (p.remaining / p.income) * 100) : 0;
+                return `
                 <div class="period-section">
                     <div class="period-dates">${p.label}</div>
                     <div class="period-values">
                         <span class="period-income">Ingreso: ${formatCurrency(p.income, { includeSymbol: true })}</span>
                         <span class="period-remaining">Restante: ${formatCurrency(p.remaining, { includeSymbol: true })}</span>
                     </div>
+                    <div class="period-progress-container">
+                        <div class="period-progress-fill" style="width: ${percentage}%;"></div>
+                        <span class="period-percentage">${Math.round(percentage)}%</span>
+                    </div>
                 </div>
-            `).join('')}
+            `}).join('')}
              ${currentMonthPayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios (semanal, quincenal, mensual) para un resumen detallado por períodos.</p>' : ''}
              ${currentMonthPayDays.length > 0 && periods.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">No hay ingresos para los períodos de pago actuales.</p>' : ''}
         </div>

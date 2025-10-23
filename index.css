@@ -1005,3 +1005,34 @@ textarea.form-input {
     color: #388bfd;
     font-weight: 600;
 }
+
+/* --- Period Progress Bar --- */
+.period-progress-container {
+    width: 100%;
+    height: 18px;
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 9px;
+    margin-top: 10px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+.period-progress-fill {
+    height: 100%;
+    background-color: #388bfd; /* Blue color */
+    border-radius: 9px;
+    transition: width 0.5s ease-in-out;
+}
+
+.period-percentage {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+}
