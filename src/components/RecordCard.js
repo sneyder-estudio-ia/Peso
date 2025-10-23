@@ -3,7 +3,6 @@ import { formatRecurrence } from '../utils/helpers.js';
 import { appState, saveState } from '../state/store.js';
 import { showConfirmationModal } from './common.js';
 import { showToast } from './Toast.js';
-// This is a simplified navigate function type for this component's needs
 const restoreRecord = (recordId) => {
     const recordIndex = appState.archivedRecords.findIndex(rec => rec.id === recordId);
     if (recordIndex === -1)
@@ -38,7 +37,7 @@ const deleteRecordPermanently = (recordId) => {
     });
 };
 const deleteIncomeRecord = (id) => {
-    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a "Archivado", donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
+    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
         const recordIndex = appState.incomeRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
             const removedItems = appState.incomeRecords.splice(recordIndex, 1);
@@ -50,13 +49,13 @@ const deleteIncomeRecord = (id) => {
                     originalType: 'income'
                 });
                 saveState(appState);
-                showToast('Registro archivado.');
+                showToast('Registro movido a la papelera.');
             }
         }
     });
 };
 const deleteExpenseRecord = (id) => {
-    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a "Archivado", donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
+    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
         const recordIndex = appState.expenseRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
             const removedItems = appState.expenseRecords.splice(recordIndex, 1);
@@ -68,13 +67,13 @@ const deleteExpenseRecord = (id) => {
                     originalType: 'expense'
                 });
                 saveState(appState);
-                showToast('Registro archivado.');
+                showToast('Registro movido a la papelera.');
             }
         }
     });
 };
 const deleteSavingRecord = (id) => {
-    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a "Archivado", donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
+    showConfirmationModal('Confirmar Borrado', 'El registro se moverá a la Papelera de Reciclaje, donde podrás restaurarlo o borrarlo permanentemente. ¿Deseas continuar?', () => {
         const recordIndex = appState.savingRecords.findIndex(rec => rec.id === id);
         if (recordIndex > -1) {
             const removedItems = appState.savingRecords.splice(recordIndex, 1);
@@ -86,7 +85,7 @@ const deleteSavingRecord = (id) => {
                     originalType: 'saving'
                 });
                 saveState(appState);
-                showToast('Registro archivado.');
+                showToast('Registro movido a la papelera.');
             }
         }
     });
@@ -231,7 +230,7 @@ export const createSavingRecordCard = (record, navigate) => {
     };
     return card;
 };
-export const createArchivedRecordCard = (record) => {
+export const createArchivedRecordCard = (record, options = {}) => {
     const card = document.createElement('div');
     card.className = 'income-record-card archived-record-card';
     const info = document.createElement('div');
@@ -254,31 +253,53 @@ export const createArchivedRecordCard = (record) => {
             originalTypeLabel = 'Ahorro';
             break;
     }
-    details.textContent = `${originalTypeLabel} • Archivado: ${archivedDate}`;
+    details.textContent = `${originalTypeLabel} • En papelera: ${archivedDate}`;
     info.appendChild(name);
     info.appendChild(details);
     const rightContainer = document.createElement('div');
     rightContainer.className = 'income-record-right';
-    // Restore button
-    const restoreButton = document.createElement('button');
-    restoreButton.className = 'btn-edit'; // reuse style
-    restoreButton.innerHTML = '&#x1F504;'; // Restore icon (clockwise arrows)
-    restoreButton.setAttribute('aria-label', `Restaurar ${record.name}`);
-    restoreButton.onclick = (e) => {
-        e.stopPropagation();
-        restoreRecord(record.id);
-    };
-    // Permanent delete button
-    const deleteButton = document.createElement('button');
-    deleteButton.className = 'btn-delete';
-    deleteButton.innerHTML = '&#x1F5D1;'; // Trash can
-    deleteButton.setAttribute('aria-label', `Borrar permanentemente ${record.name}`);
-    deleteButton.onclick = (e) => {
-        e.stopPropagation();
-        deleteRecordPermanently(record.id);
-    };
-    rightContainer.appendChild(restoreButton);
-    rightContainer.appendChild(deleteButton);
+    if (options.selectionMode) {
+        card.style.cursor = 'pointer';
+        card.onclick = (e) => {
+            // Allow clicking the checkbox itself, but clicking anywhere else on the card also toggles it.
+            if (e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                options.onSelect?.(record.id);
+            }
+        };
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = options.isSelected ?? false;
+        checkbox.style.transform = 'scale(1.5)'; // Make it easier to tap
+        checkbox.style.cursor = 'pointer';
+        checkbox.setAttribute('aria-label', `Seleccionar ${record.name}`);
+        // Let the card's onclick handle the logic to avoid double-firing
+        checkbox.onchange = () => {
+            options.onSelect?.(record.id);
+        };
+        rightContainer.appendChild(checkbox);
+    }
+    else {
+        // Normal mode with restore/delete buttons
+        const restoreButton = document.createElement('button');
+        restoreButton.className = 'btn-edit'; // reuse style
+        restoreButton.innerHTML = '&#x1F504;'; // Restore icon (clockwise arrows)
+        restoreButton.setAttribute('aria-label', `Restaurar ${record.name}`);
+        restoreButton.onclick = (e) => {
+            e.stopPropagation();
+            restoreRecord(record.id);
+        };
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'btn-delete';
+        deleteButton.innerHTML = '&#x1F5D1;'; // Trash can
+        deleteButton.setAttribute('aria-label', `Borrar permanentemente ${record.name}`);
+        deleteButton.onclick = (e) => {
+            e.stopPropagation();
+            deleteRecordPermanently(record.id);
+        };
+        rightContainer.appendChild(restoreButton);
+        rightContainer.appendChild(deleteButton);
+    }
     card.appendChild(info);
     card.appendChild(rightContainer);
     return card;

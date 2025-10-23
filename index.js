@@ -292,7 +292,7 @@ const renderNavPanel = (panel, navigate) => {
              ${currentMonthPayDays.length > 0 && periods.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">No hay ingresos para los períodos de pago actuales.</p>' : ''}
         </div>
         <div class="filter-card nav-button-card" id="nav-archived-card">
-            <h3 class="filter-card-title">Archivado</h3>
+            <h3 class="filter-card-title">Papelera de Reciclaje</h3>
             <span class="nav-button-arrow">&rarr;</span>
         </div>
     `;
