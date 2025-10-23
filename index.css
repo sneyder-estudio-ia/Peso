@@ -1162,6 +1162,87 @@ textarea.form-input {
     transform: translateX(5px);
 }
 
+/* --- Financial Info Report Styles --- */
+.report-section {
+    margin-top: 30px;
+    border-top: 1px solid #30363d;
+    padding-top: 20px;
+    text-align: left;
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.summary-item {
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 15px;
+    text-align: center;
+}
+
+.summary-item .label {
+    margin-bottom: 5px;
+    font-size: 0.8rem;
+}
+
+.summary-item .primary-value {
+    font-size: 1.4rem;
+    margin: 0;
+}
+
+.transaction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px; /* space for scrollbar */
+}
+
+.transaction-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background-color: #0d1117;
+    border-radius: 6px;
+    border: 1px solid #30363d;
+}
+
+.transaction-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    margin-right: 10px;
+}
+
+.transaction-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.transaction-details {
+    font-size: 0.8rem;
+    color: #8b949e;
+}
+
+.transaction-amount {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #f85149; /* expense color */
+    flex-shrink: 0;
+}
+
+
 @keyframes spin {
     from {
         transform: rotate(0deg);
