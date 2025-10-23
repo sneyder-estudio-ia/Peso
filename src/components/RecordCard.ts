@@ -58,13 +58,15 @@ const deleteIncomeRecord = (id: string) => {
             const recordIndex = appState.incomeRecords.findIndex(rec => rec.id === id);
             if (recordIndex > -1) {
                 const [recordToArchive] = appState.incomeRecords.splice(recordIndex, 1);
-                appState.archivedRecords.push({
-                    ...recordToArchive,
-                    archivedAt: Date.now(),
-                    originalType: 'income'
-                });
-                saveState(appState);
-                showToast('Registro archivado.');
+                if (recordToArchive) {
+                    appState.archivedRecords.push({
+                        ...recordToArchive,
+                        archivedAt: Date.now(),
+                        originalType: 'income'
+                    });
+                    saveState(appState);
+                    showToast('Registro archivado.');
+                }
             }
         }
     );
@@ -78,13 +80,15 @@ const deleteExpenseRecord = (id: string) => {
             const recordIndex = appState.expenseRecords.findIndex(rec => rec.id === id);
             if (recordIndex > -1) {
                 const [recordToArchive] = appState.expenseRecords.splice(recordIndex, 1);
-                appState.archivedRecords.push({
-                    ...recordToArchive,
-                    archivedAt: Date.now(),
-                    originalType: 'expense'
-                });
-                saveState(appState);
-                showToast('Registro archivado.');
+                 if (recordToArchive) {
+                    appState.archivedRecords.push({
+                        ...recordToArchive,
+                        archivedAt: Date.now(),
+                        originalType: 'expense'
+                    });
+                    saveState(appState);
+                    showToast('Registro archivado.');
+                }
             }
         }
     );
@@ -98,13 +102,15 @@ const deleteSavingRecord = (id: string) => {
             const recordIndex = appState.savingRecords.findIndex(rec => rec.id === id);
             if (recordIndex > -1) {
                 const [recordToArchive] = appState.savingRecords.splice(recordIndex, 1);
-                appState.archivedRecords.push({
-                    ...recordToArchive,
-                    archivedAt: Date.now(),
-                    originalType: 'saving'
-                });
-                saveState(appState);
-                showToast('Registro archivado.');
+                if (recordToArchive) {
+                    appState.archivedRecords.push({
+                        ...recordToArchive,
+                        archivedAt: Date.now(),
+                        originalType: 'saving'
+                    });
+                    saveState(appState);
+                    showToast('Registro archivado.');
+                }
             }
         }
     );
