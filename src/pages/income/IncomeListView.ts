@@ -22,7 +22,7 @@ const renderIncomeList = (recordsToRender: IncomeRecord[]) => {
         listContainer.appendChild(emptyMessage);
     } else {
         recordsToRender.forEach(record => {
-            const card = createIncomeRecordCard(record, localNavigate!, filterAndRenderIncomeList);
+            const card = createIncomeRecordCard(record, localNavigate!);
             listContainer.appendChild(card);
         });
     }

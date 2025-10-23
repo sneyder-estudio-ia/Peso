@@ -1,15 +1,12 @@
 import { appState, saveState } from '../../state/store.js';
-import { SavingRecord, RecurrenceRule } from '../../types/index.js';
 import { parseCurrency, formatCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
 import { showToast } from '../../components/Toast.js';
 
-type NavigateFunction = (view: string) => void;
-
 export const renderSavingsFormView = (
-    container: HTMLElement, 
-    navigate: NavigateFunction, 
-    type: 'Recurrente' | 'Único', 
-    recordId?: string,
+    container, 
+    navigate, 
+    type, 
+    recordId
 ) => {
     container.innerHTML = ''; // Clear previous content
 
@@ -43,25 +40,25 @@ export const renderSavingsFormView = (
     form.className = 'income-form';
     form.onsubmit = (e) => e.preventDefault();
 
-    const createFormField = (labelText: string, inputType: string, inputId: string, placeholder: string = '') => {
+    const createFormField = (labelText, inputType, inputId, placeholder = '') => {
         const formGroup = document.createElement('div');
         formGroup.className = 'form-group';
         const label = document.createElement('label');
         label.className = 'form-label';
         label.htmlFor = inputId;
         label.textContent = labelText;
-        let input: HTMLInputElement | HTMLTextAreaElement;
+        let input;
         if (inputType === 'textarea') {
             input = document.createElement('textarea');
             input.rows = 3;
         } else {
             input = document.createElement('input');
             if (inputType === 'number') {
-                (input as HTMLInputElement).type = 'text';
-                (input as HTMLInputElement).inputMode = 'decimal';
+                input.type = 'text';
+                input.inputMode = 'decimal';
                 input.addEventListener('input', handleNumericInputFormatting);
             } else {
-                (input as HTMLInputElement).type = inputType;
+                input.type = inputType;
             }
         }
         input.className = 'form-input';
@@ -88,7 +85,7 @@ export const renderSavingsFormView = (
     const storageRadioContainer = document.createElement('div');
     storageRadioContainer.className = 'radio-group-container';
     
-    const storageTypes: SavingRecord['storageType'][] = ['Banco', 'Personal'];
+    const storageTypes = ['Banco', 'Personal'];
     storageTypes.forEach(st => {
         const option = document.createElement('div');
         option.className = 'radio-option';
@@ -140,7 +137,7 @@ export const renderSavingsFormView = (
     storageTypeGroup.appendChild(bankDetailsContainer);
 
     storageRadioContainer.onchange = (e) => {
-        const target = e.target as HTMLInputElement;
+        const target = e.target;
         if (target.value === 'Banco') {
             bankDetailsContainer.style.display = 'flex';
         } else {
@@ -160,15 +157,15 @@ export const renderSavingsFormView = (
         form.appendChild(dateField);
 
         if (isEditMode && recordToEdit && recordToEdit.date) {
-            (dateField.querySelector('input') as HTMLInputElement).value = recordToEdit.date;
+            dateField.querySelector('input').value = recordToEdit.date;
         }
         
         saveButton.onclick = () => {
             const formData = new FormData(form);
-            const name = formData.get('savings-name') as string;
-            const amountStr = formData.get('savings-amount') as string;
-            const date = formData.get('savings-date') as string;
-            const storageType = (form.querySelector('input[name="savings-storage-type"]:checked') as HTMLInputElement)?.value as 'Banco' | 'Personal';
+            const name = formData.get('savings-name');
+            const amountStr = formData.get('savings-amount');
+            const date = formData.get('savings-date');
+            const storageType = form.querySelector('input[name="savings-storage-type"]:checked')?.value;
 
             if (!name || !amountStr || !date) {
                 alert('Por favor, complete los campos Nombre, Monto y Fecha.');
@@ -179,17 +176,17 @@ export const renderSavingsFormView = (
                 return;
             }
 
-            const newRecord: SavingRecord = {
+            const newRecord = {
                 id: recordId || `sav-${Date.now()}`,
                 type: type,
                 name: name,
                 amount: parseCurrency(amountStr),
                 date: date,
-                description: formData.get('savings-description') as string,
+                description: formData.get('savings-description'),
                 storageType: storageType,
-                bankName: storageType === 'Banco' ? formData.get('savings-bank-name') as string : undefined,
-                accountType: storageType === 'Banco' ? formData.get('savings-account-type') as string : undefined,
-                goalAmount: parseCurrency(formData.get('savings-goal-amount') as string) || undefined,
+                bankName: storageType === 'Banco' ? formData.get('savings-bank-name') : undefined,
+                accountType: storageType === 'Banco' ? formData.get('savings-account-type') : undefined,
+                goalAmount: parseCurrency(formData.get('savings-goal-amount')) || undefined,
             };
 
             if (isEditMode) {
@@ -215,7 +212,7 @@ export const renderSavingsFormView = (
         const detailsContainer = document.createElement('div');
         detailsContainer.id = 'savings-frequency-details-container';
         detailsContainer.className = 'frequency-details';
-        const frequencies: RecurrenceRule['type'][] = ['Diario', 'Semanal', 'Quincenal', 'Mensual'];
+        const frequencies = ['Diario', 'Semanal', 'Quincenal', 'Mensual'];
         frequencies.forEach(freq => {
             const option = document.createElement('div');
             option.className = 'radio-option';
@@ -232,7 +229,7 @@ export const renderSavingsFormView = (
             radioContainer.appendChild(option);
         });
         radioContainer.onchange = (e) => {
-            const target = e.target as HTMLInputElement;
+            const target = e.target;
             detailsContainer.innerHTML = '';
             if (target.value === 'Semanal') {
                 const weekSelect = document.createElement('select');
@@ -248,12 +245,12 @@ export const renderSavingsFormView = (
                 detailsContainer.appendChild(weekSelect);
             } else if (target.value === 'Quincenal') {
                 const day1Group = createFormField('Día 1', 'number', 'dayOfMonth1', '0');
-                const day1Input = day1Group.querySelector('input') as HTMLInputElement;
+                const day1Input = day1Group.querySelector('input');
                 day1Input.name = 'daysOfMonth';
                 day1Input.min = '1';
                 day1Input.max = '31';
                 const day2Group = createFormField('Día 2', 'number', 'dayOfMonth2', '0');
-                const day2Input = day2Group.querySelector('input') as HTMLInputElement;
+                const day2Input = day2Group.querySelector('input');
                 day2Input.name = 'daysOfMonth';
                 day2Input.min = '1';
                 day2Input.max = '31';
@@ -261,7 +258,7 @@ export const renderSavingsFormView = (
                 detailsContainer.appendChild(day2Group);
             } else if (target.value === 'Mensual') {
                 const dayGroup = createFormField('Día del mes', 'number', 'dayOfMonth1', '0');
-                const dayInput = dayGroup.querySelector('input') as HTMLInputElement;
+                const dayInput = dayGroup.querySelector('input');
                 dayInput.name = 'daysOfMonth';
                 dayInput.min = '1';
                 dayInput.max = '31';
@@ -273,29 +270,29 @@ export const renderSavingsFormView = (
         form.appendChild(frequencyGroup);
 
         if (isEditMode && recordToEdit?.recurrence) {
-            const freqRadio = form.querySelector(`input[name="savings-frequency"][value="${recordToEdit.recurrence.type}"]`) as HTMLInputElement;
+            const freqRadio = form.querySelector(`input[name="savings-frequency"][value="${recordToEdit.recurrence.type}"]`);
             if (freqRadio) {
                 freqRadio.checked = true;
                 freqRadio.dispatchEvent(new Event('change', { bubbles: true }));
                 const recurrence = recordToEdit.recurrence;
                 if (recurrence.type === 'Semanal' && recurrence.dayOfWeek) {
-                    (detailsContainer.querySelector('select') as HTMLSelectElement).value = recurrence.dayOfWeek;
+                    detailsContainer.querySelector('select').value = recurrence.dayOfWeek;
                 } else if (recurrence.type === 'Quincenal' && recurrence.daysOfMonth) {
                     const inputs = detailsContainer.querySelectorAll('input[name="daysOfMonth"]');
-                    if (inputs[0]) (inputs[0] as HTMLInputElement).value = String(recurrence.daysOfMonth[0] || '');
-                    if (inputs[1]) (inputs[1] as HTMLInputElement).value = String(recurrence.daysOfMonth[1] || '');
+                    if (inputs[0]) inputs[0].value = String(recurrence.daysOfMonth[0] || '');
+                    if (inputs[1]) inputs[1].value = String(recurrence.daysOfMonth[1] || '');
                 } else if (recurrence.type === 'Mensual' && recurrence.daysOfMonth) {
-                    (detailsContainer.querySelector('input') as HTMLInputElement).value = String(recurrence.daysOfMonth[0] || '');
+                    detailsContainer.querySelector('input').value = String(recurrence.daysOfMonth[0] || '');
                 }
             }
         }
 
         saveButton.onclick = () => {
             const formData = new FormData(form);
-            const name = formData.get('savings-name') as string;
-            const amountStr = formData.get('savings-amount') as string;
-            const frequencyType = formData.get('savings-frequency') as RecurrenceRule['type'];
-            const storageType = (form.querySelector('input[name="savings-storage-type"]:checked') as HTMLInputElement)?.value as 'Banco' | 'Personal';
+            const name = formData.get('savings-name');
+            const amountStr = formData.get('savings-amount');
+            const frequencyType = formData.get('savings-frequency');
+            const storageType = form.querySelector('input[name="savings-storage-type"]:checked')?.value;
 
             if (!name || !amountStr || !frequencyType) {
                 alert('Por favor, complete Nombre, Monto y Frecuencia.');
@@ -306,24 +303,24 @@ export const renderSavingsFormView = (
                 return;
             }
 
-            const recurrence: RecurrenceRule = { type: frequencyType };
+            const recurrence = { type: frequencyType };
             if (frequencyType === 'Semanal') {
-                recurrence.dayOfWeek = formData.get('dayOfWeek') as string;
+                recurrence.dayOfWeek = formData.get('dayOfWeek');
             } else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
-                recurrence.daysOfMonth = (formData.getAll('daysOfMonth') as string[]).map(d => parseInt(d, 10)).filter(d => d > 0);
+                recurrence.daysOfMonth = (formData.getAll('daysOfMonth')).map(d => parseInt(d, 10)).filter(d => d > 0);
             }
 
-            const newRecord: SavingRecord = {
+            const newRecord = {
                 id: recordId || `sav-${Date.now()}`,
                 type: type,
                 name: name,
                 amount: parseCurrency(amountStr),
-                description: formData.get('savings-description') as string,
+                description: formData.get('savings-description'),
                 recurrence: recurrence,
                 storageType: storageType,
-                bankName: storageType === 'Banco' ? formData.get('savings-bank-name') as string : undefined,
-                accountType: storageType === 'Banco' ? formData.get('savings-account-type') as string : undefined,
-                goalAmount: parseCurrency(formData.get('savings-goal-amount') as string) || undefined,
+                bankName: storageType === 'Banco' ? formData.get('savings-bank-name') : undefined,
+                accountType: storageType === 'Banco' ? formData.get('savings-account-type') : undefined,
+                goalAmount: parseCurrency(formData.get('savings-goal-amount')) || undefined,
             };
 
             if (isEditMode) {
@@ -340,18 +337,18 @@ export const renderSavingsFormView = (
     }
 
     if (isEditMode && recordToEdit) {
-        (nameField.querySelector('input') as HTMLInputElement).value = recordToEdit.name;
-        (amountField.querySelector('input') as HTMLInputElement).value = formatCurrency(recordToEdit.amount).replace(/\./g, '').replace(',', ',');
-        (goalAmountField.querySelector('input') as HTMLInputElement).value = formatCurrency(recordToEdit.goalAmount);
-        (descriptionField.querySelector('textarea') as HTMLTextAreaElement).value = recordToEdit.description;
+        nameField.querySelector('input').value = recordToEdit.name;
+        amountField.querySelector('input').value = formatCurrency(recordToEdit.amount).replace(/\./g, '').replace(',', ',');
+        goalAmountField.querySelector('input').value = formatCurrency(recordToEdit.goalAmount);
+        descriptionField.querySelector('textarea').value = recordToEdit.description;
 
-        const storageRadio = form.querySelector(`input[name="savings-storage-type"][value="${recordToEdit.storageType}"]`) as HTMLInputElement;
+        const storageRadio = form.querySelector(`input[name="savings-storage-type"][value="${recordToEdit.storageType}"]`);
         if (storageRadio) {
             storageRadio.checked = true;
             storageRadio.dispatchEvent(new Event('change', { bubbles: true }));
             if (recordToEdit.storageType === 'Banco') {
-                (bankNameField.querySelector('input') as HTMLInputElement).value = recordToEdit.bankName || '';
-                (form.querySelector('select[name="savings-account-type"]') as HTMLSelectElement).value = recordToEdit.accountType || 'Caja de Ahorro';
+                bankNameField.querySelector('input').value = recordToEdit.bankName || '';
+                form.querySelector('select[name="savings-account-type"]').value = recordToEdit.accountType || 'Caja de Ahorro';
             }
         }
     }

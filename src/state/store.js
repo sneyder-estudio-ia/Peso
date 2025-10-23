@@ -1,9 +1,24 @@
 const STORAGE_KEY = 'pesoAppData';
 
+let listeners = [];
+
+export const subscribe = (callback) => {
+    listeners.push(callback);
+    // Optional: return an unsubscribe function
+    return () => {
+        listeners = listeners.filter(l => l !== callback);
+    };
+};
+
+const notify = () => {
+    listeners.forEach(callback => callback());
+};
+
 export const saveState = (state) => {
     try {
         const serializedState = JSON.stringify(state);
         localStorage.setItem(STORAGE_KEY, serializedState);
+        notify();
     } catch (error) {
         console.error("Error saving state to localStorage", error);
     }

@@ -1,16 +1,13 @@
 import { appState } from '../../state/store.js';
-import { SavingRecord } from '../../types/index.js';
-import { createSavingRecordCard } from '../../components/RecordCard.js';
-import { showSavingTypeModal } from '../../components/common.js';
+import { createIncomeRecordCard } from '../../components/RecordCard.js';
+import { showIncomeTypeModal } from '../../components/common.js';
 
-type NavigateFunction = (view: string, state?: { recordType?: 'Recurrente' | 'Único', recordId?: string }) => void;
+let searchInput = null;
+let filterContainer = null;
+let listContainer = null;
+let localNavigate = null;
 
-let searchInput: HTMLInputElement | null = null;
-let filterContainer: HTMLElement | null = null;
-let listContainer: HTMLElement | null = null;
-let localNavigate: NavigateFunction | null = null;
-
-const renderSavingsList = (recordsToRender: SavingRecord[]) => {
+const renderIncomeList = (recordsToRender) => {
     if (!listContainer || !localNavigate) return;
 
     listContainer.innerHTML = ''; // Clear previous list
@@ -18,22 +15,22 @@ const renderSavingsList = (recordsToRender: SavingRecord[]) => {
     if (recordsToRender.length === 0) {
         const emptyMessage = document.createElement('p');
         emptyMessage.className = 'empty-list-message';
-        emptyMessage.textContent = 'No se encontraron ahorros.';
+        emptyMessage.textContent = 'No se encontraron ingresos.';
         listContainer.appendChild(emptyMessage);
     } else {
         recordsToRender.forEach(record => {
-            const card = createSavingRecordCard(record, localNavigate!);
+            const card = createIncomeRecordCard(record, localNavigate);
             listContainer.appendChild(card);
         });
     }
 };
 
-const filterAndRenderSavingsList = () => {
+const filterAndRenderIncomeList = () => {
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-    const activeFilterButton = filterContainer ? filterContainer.querySelector('.btn-filter.active') as HTMLElement : null;
+    const activeFilterButton = filterContainer ? filterContainer.querySelector('.btn-filter.active') : null;
     const filterType = activeFilterButton ? activeFilterButton.dataset.type : null;
 
-    let filteredRecords = appState.savingRecords;
+    let filteredRecords = appState.incomeRecords;
 
     if (searchTerm) {
         filteredRecords = filteredRecords.filter(record => 
@@ -45,12 +42,12 @@ const filterAndRenderSavingsList = () => {
         filteredRecords = filteredRecords.filter(record => record.type === filterType);
     }
 
-    renderSavingsList(filteredRecords);
+    renderIncomeList(filteredRecords);
 };
 
-export const renderSavingsListView = (container: HTMLElement, navigate: NavigateFunction) => {
+export const renderIncomeListView = (container, navigate) => {
     localNavigate = navigate;
-    container.innerHTML = ''; // Clear previous content
+    container.innerHTML = ''; // Clear previous content to prevent duplicating elements
 
     const header = document.createElement('div');
     header.className = 'income-page-header';
@@ -62,16 +59,16 @@ export const renderSavingsListView = (container: HTMLElement, navigate: Navigate
 
     const addButton = document.createElement('button');
     addButton.className = 'btn btn-add';
-    addButton.textContent = 'Agregar Ahorro';
+    addButton.textContent = 'Agregar Ingreso';
     addButton.onclick = () => {
-        showSavingTypeModal((type) => {
-            navigate('savingsForm', { recordType: type });
+        showIncomeTypeModal((type) => {
+            navigate('incomeForm', { recordType: type });
         });
-    }
+    };
     
     const title = document.createElement('h2');
     title.className = 'card-title';
-    title.textContent = 'Ahorro';
+    title.textContent = 'Ingreso';
     
     header.appendChild(backButton);
     header.appendChild(addButton);
@@ -81,10 +78,10 @@ export const renderSavingsListView = (container: HTMLElement, navigate: Navigate
 
     searchInput = document.createElement('input');
     searchInput.type = 'search';
-    searchInput.id = 'savings-search-input';
+    searchInput.id = 'income-search-input';
     searchInput.placeholder = 'Buscar por nombre...';
     searchInput.className = 'search-input';
-    searchInput.oninput = filterAndRenderSavingsList;
+    searchInput.oninput = filterAndRenderIncomeList;
     container.appendChild(searchInput);
 
     filterContainer = document.createElement('div');
@@ -100,18 +97,18 @@ export const renderSavingsListView = (container: HTMLElement, navigate: Navigate
     uniqueFilter.textContent = 'Único';
     uniqueFilter.dataset.type = 'Único';
 
-    const handleFilterClick = (e: MouseEvent) => {
-        const clickedButton = e.currentTarget as HTMLElement;
+    const handleFilterClick = (e) => {
+        const clickedButton = e.currentTarget;
         if (clickedButton.classList.contains('active')) {
             clickedButton.classList.remove('active');
         } else {
-            const currentActive = filterContainer!.querySelector('.btn-filter.active');
+            const currentActive = filterContainer.querySelector('.btn-filter.active');
             if (currentActive) {
                 currentActive.classList.remove('active');
             }
             clickedButton.classList.add('active');
         }
-        filterAndRenderSavingsList();
+        filterAndRenderIncomeList();
     };
 
     recurrentFilter.onclick = handleFilterClick;
@@ -122,8 +119,8 @@ export const renderSavingsListView = (container: HTMLElement, navigate: Navigate
     container.appendChild(filterContainer);
 
     listContainer = document.createElement('div');
-    listContainer.id = 'savings-list-container';
+    listContainer.id = 'income-list-container';
     container.appendChild(listContainer);
 
-    filterAndRenderSavingsList();
+    filterAndRenderIncomeList();
 };

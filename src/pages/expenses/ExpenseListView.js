@@ -1,39 +1,35 @@
 import { appState } from '../../state/store.js';
-import { SavingRecord } from '../../types/index.js';
-import { createSavingRecordCard } from '../../components/RecordCard.js';
-import { showSavingTypeModal } from '../../components/common.js';
+import { createExpenseRecordCard } from '../../components/RecordCard.js';
+import { showExpenseTypeModal } from '../../components/common.js';
 
-type NavigateFunction = (view: string, state?: { recordType?: 'Recurrente' | 'Único', recordId?: string }) => void;
+let searchInput = null;
+let filterContainer = null;
+let listContainer = null;
+let localNavigate = null;
 
-let searchInput: HTMLInputElement | null = null;
-let filterContainer: HTMLElement | null = null;
-let listContainer: HTMLElement | null = null;
-let localNavigate: NavigateFunction | null = null;
-
-const renderSavingsList = (recordsToRender: SavingRecord[]) => {
+const renderExpenseList = (recordsToRender) => {
     if (!listContainer || !localNavigate) return;
-
     listContainer.innerHTML = ''; // Clear previous list
 
     if (recordsToRender.length === 0) {
         const emptyMessage = document.createElement('p');
         emptyMessage.className = 'empty-list-message';
-        emptyMessage.textContent = 'No se encontraron ahorros.';
+        emptyMessage.textContent = 'No se encontraron gastos.';
         listContainer.appendChild(emptyMessage);
     } else {
         recordsToRender.forEach(record => {
-            const card = createSavingRecordCard(record, localNavigate!);
+            const card = createExpenseRecordCard(record, localNavigate);
             listContainer.appendChild(card);
         });
     }
 };
 
-const filterAndRenderSavingsList = () => {
+const filterAndRenderExpenseList = () => {
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-    const activeFilterButton = filterContainer ? filterContainer.querySelector('.btn-filter.active') as HTMLElement : null;
+    const activeFilterButton = filterContainer ? filterContainer.querySelector('.btn-filter.active') : null;
     const filterType = activeFilterButton ? activeFilterButton.dataset.type : null;
 
-    let filteredRecords = appState.savingRecords;
+    let filteredRecords = appState.expenseRecords;
 
     if (searchTerm) {
         filteredRecords = filteredRecords.filter(record => 
@@ -45,10 +41,11 @@ const filterAndRenderSavingsList = () => {
         filteredRecords = filteredRecords.filter(record => record.type === filterType);
     }
 
-    renderSavingsList(filteredRecords);
+    renderExpenseList(filteredRecords);
 };
 
-export const renderSavingsListView = (container: HTMLElement, navigate: NavigateFunction) => {
+
+export const renderExpenseListView = (container, navigate) => {
     localNavigate = navigate;
     container.innerHTML = ''; // Clear previous content
 
@@ -62,16 +59,16 @@ export const renderSavingsListView = (container: HTMLElement, navigate: Navigate
 
     const addButton = document.createElement('button');
     addButton.className = 'btn btn-add';
-    addButton.textContent = 'Agregar Ahorro';
+    addButton.textContent = 'Agregar Gasto';
     addButton.onclick = () => {
-        showSavingTypeModal((type) => {
-            navigate('savingsForm', { recordType: type });
+        showExpenseTypeModal((type) => {
+            navigate('expenseForm', { recordType: type });
         });
     }
     
     const title = document.createElement('h2');
     title.className = 'card-title';
-    title.textContent = 'Ahorro';
+    title.textContent = 'Gasto';
     
     header.appendChild(backButton);
     header.appendChild(addButton);
@@ -81,10 +78,10 @@ export const renderSavingsListView = (container: HTMLElement, navigate: Navigate
 
     searchInput = document.createElement('input');
     searchInput.type = 'search';
-    searchInput.id = 'savings-search-input';
+    searchInput.id = 'expense-search-input';
     searchInput.placeholder = 'Buscar por nombre...';
     searchInput.className = 'search-input';
-    searchInput.oninput = filterAndRenderSavingsList;
+    searchInput.oninput = filterAndRenderExpenseList;
     container.appendChild(searchInput);
 
     filterContainer = document.createElement('div');
@@ -100,18 +97,18 @@ export const renderSavingsListView = (container: HTMLElement, navigate: Navigate
     uniqueFilter.textContent = 'Único';
     uniqueFilter.dataset.type = 'Único';
 
-    const handleFilterClick = (e: MouseEvent) => {
-        const clickedButton = e.currentTarget as HTMLElement;
+    const handleFilterClick = (e) => {
+        const clickedButton = e.currentTarget;
         if (clickedButton.classList.contains('active')) {
             clickedButton.classList.remove('active');
         } else {
-            const currentActive = filterContainer!.querySelector('.btn-filter.active');
+            const currentActive = filterContainer.querySelector('.btn-filter.active');
             if (currentActive) {
                 currentActive.classList.remove('active');
             }
             clickedButton.classList.add('active');
         }
-        filterAndRenderSavingsList();
+        filterAndRenderExpenseList();
     };
 
     recurrentFilter.onclick = handleFilterClick;
@@ -122,8 +119,8 @@ export const renderSavingsListView = (container: HTMLElement, navigate: Navigate
     container.appendChild(filterContainer);
 
     listContainer = document.createElement('div');
-    listContainer.id = 'savings-list-container';
+    listContainer.id = 'expense-list-container';
     container.appendChild(listContainer);
 
-    filterAndRenderSavingsList();
+    filterAndRenderExpenseList();
 };

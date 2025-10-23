@@ -371,10 +371,6 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
 
     const renderFilteredList = () => {
         dashboardListContainer.innerHTML = '';
-        const rerender = () => {
-            // Re-render the entire dashboard to update card values after a deletion
-            renderDashboardView(container, navigate);
-        };
     
         let recordsToRender: (IncomeRecord | ExpenseRecord)[];
     
@@ -408,9 +404,9 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
                 let card: HTMLElement;
                 // Use 'source' property to check if it's an IncomeRecord
                 if ('source' in record) {
-                    card = createIncomeRecordCard(record as IncomeRecord, navigate, rerender);
+                    card = createIncomeRecordCard(record as IncomeRecord, navigate);
                 } else {
-                    card = createExpenseRecordCard(record as ExpenseRecord, navigate, rerender);
+                    card = createExpenseRecordCard(record as ExpenseRecord, navigate);
                 }
                 dashboardListContainer.appendChild(card);
             });

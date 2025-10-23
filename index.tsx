@@ -28,7 +28,7 @@ import { renderSavingsDetailsView } from './src/pages/details/SavingsDetailsView
 import { renderStatisticsView } from './src/pages/statistics/StatisticsView.js';
 import { renderSettingsView } from './src/pages/settings/SettingsView.js';
 import { IncomeRecord, ExpenseRecord } from './src/types/index.js';
-import { appState } from './src/state/store.js';
+import { appState, subscribe } from './src/state/store.js';
 import { formatCurrency } from './src/utils/currency.js';
 
 const root = document.getElementById('root');
@@ -182,15 +182,14 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
-    const monthName = now.toLocaleString('es-ES', { month: 'long' });
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const monthName = (date: Date) => date.toLocaleString('es-ES', { month: 'long' });
+    const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
 
-    const periods = [];
-    const payDaysInMonth: number[] = [];
+    const getPayDaysForMonth = (year: number, month: number): number[] => {
+        const payDays: number[] = [];
+        const monthDays = daysInMonth(year, month);
+        const salaries = appState.userProfile.salaries || [];
 
-    const salaries = appState.userProfile.salaries || [];
-
-    if (salaries.length > 0) {
         salaries.forEach(salary => {
             const { recurrence } = salary;
             if (!recurrence) return;
@@ -200,10 +199,10 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
                     if (recurrence.dayOfWeek) {
                         const targetDayIndex = dayNameToIndex[recurrence.dayOfWeek];
                         if (targetDayIndex !== undefined) {
-                            for (let day = 1; day <= daysInMonth; day++) {
-                                const date = new Date(currentYear, currentMonth, day);
+                            for (let day = 1; day <= monthDays; day++) {
+                                const date = new Date(year, month, day);
                                 if (date.getDay() === targetDayIndex) {
-                                    payDaysInMonth.push(day);
+                                    payDays.push(day);
                                 }
                             }
                         }
@@ -212,56 +211,77 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
                 case 'Quincenal':
                 case 'Mensual':
                     if (recurrence.daysOfMonth) {
-                        // Ensure days are valid for the current month.
                         recurrence.daysOfMonth.forEach(day => {
-                            if (day > 0 && day <= daysInMonth) {
-                                payDaysInMonth.push(day);
+                            if (day > 0 && day <= monthDays) {
+                                payDays.push(day);
                             }
                         });
                     }
                     break;
-                // 'Diario' does not create period boundaries.
-                case 'Diario':
-                default:
-                    break;
+                case 'Diario': default: break;
             }
         });
-    }
+        return [...new Set(payDays)].sort((a, b) => a - b);
+    };
 
-    const uniquePayDays = [...new Set(payDaysInMonth)].sort((a, b) => a - b);
+    const currentMonthPayDays = getPayDaysForMonth(currentYear, currentMonth);
+    const periods = [];
 
-    if (uniquePayDays.length > 0) {
-        // Build periods around configured salary dates
-        const splitPoints = [1, ...uniquePayDays, daysInMonth + 1];
-        const uniqueSplitPoints = [...new Set(splitPoints)].sort((a, b) => a - b);
+    if (currentMonthPayDays.length > 0) {
+        const allPayDaysAsDates: Date[] = [];
+        currentMonthPayDays.forEach(day => allPayDaysAsDates.push(new Date(currentYear, currentMonth, day)));
 
-        for (let i = 0; i < uniqueSplitPoints.length - 1; i++) {
-            const startDay = uniqueSplitPoints[i];
-            const endDay = uniqueSplitPoints[i + 1] - 1;
+        const nextMonthDate = new Date(currentYear, currentMonth + 1, 1);
+        const nextMonthPayDays = getPayDaysForMonth(nextMonthDate.getFullYear(), nextMonthDate.getMonth());
+        
+        if (nextMonthPayDays.length > 0) {
+            allPayDaysAsDates.push(new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), nextMonthPayDays[0]));
+        } else if (currentMonthPayDays.length > 0) {
+            allPayDaysAsDates.push(new Date(nextMonthDate.getFullYear(), nextMonthDate.getMonth(), currentMonthPayDays[0]));
+        }
 
-            if (startDay > endDay) continue; // Safeguard for consecutive paydays resulting in invalid periods
+        for (let i = 0; i < currentMonthPayDays.length; i++) {
+            const p_start = new Date(currentYear, currentMonth, currentMonthPayDays[i]);
+            const nextPayDayDate = allPayDaysAsDates.find(d => d.getTime() > p_start.getTime());
 
-            const p_start = new Date(currentYear, currentMonth, startDay);
-            const p_end = new Date(currentYear, currentMonth, endDay);
-            
+            if (!nextPayDayDate) continue;
+
+            const p_end = new Date(nextPayDayDate);
+            p_end.setDate(p_end.getDate() - 1);
+
             const p_income = calculateValueInDateRange(appState.incomeRecords, p_start, p_end);
-            const p_expense = calculateValueInDateRange(appState.expenseRecords, p_start, p_end);
             
-            periods.push({
-                label: startDay === endDay ? `${startDay} de ${monthName}` : `${startDay} - ${endDay} de ${monthName}`,
-                income: p_income,
-                remaining: p_income - p_expense
-            });
+            if (p_income > 0) {
+                const p_expense = calculateValueInDateRange(appState.expenseRecords, p_start, p_end);
+                
+                const startDay = p_start.getDate();
+                const startMonthName = monthName(p_start);
+                const endDay = p_end.getDate();
+                const endMonthName = monthName(p_end);
+
+                let label = '';
+                if (startMonthName === endMonthName) {
+                    label = `${startDay} - ${endDay} de ${startMonthName}`;
+                } else {
+                    label = `${startDay} de ${startMonthName} - ${endDay} de ${endMonthName}`;
+                }
+
+                periods.push({
+                    label: label,
+                    income: p_income,
+                    remaining: p_income - p_expense
+                });
+            }
         }
     } else {
         // Fallback: If no salaries are set, or only daily salaries, show a single summary for the entire current month.
         const p_start = new Date(currentYear, currentMonth, 1);
-        const p_end = new Date(currentYear, currentMonth, daysInMonth);
+        const p_end = new Date(currentYear, currentMonth, daysInMonth(currentYear, currentMonth));
         const p_income = calculateValueInDateRange(appState.incomeRecords, p_start, p_end);
         const p_expense = calculateValueInDateRange(appState.expenseRecords, p_start, p_end);
         
         periods.push({
-            label: `${monthName} ${currentYear}`,
+            label: `${monthName(now)} ${currentYear}`,
             income: p_income,
             remaining: p_income - p_expense
         });
@@ -280,7 +300,8 @@ const renderNavPanel = (panel: HTMLElement, navigate: (view: ViewType) => void) 
                     </div>
                 </div>
             `).join('')}
-             ${uniquePayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios (semanal, quincenal, mensual) para un resumen detallado por períodos.</p>' : ''}
+             ${currentMonthPayDays.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">Configure salarios (semanal, quincenal, mensual) para un resumen detallado por períodos.</p>' : ''}
+             ${currentMonthPayDays.length > 0 && periods.length === 0 ? '<p class="empty-list-message" style="font-size: 0.9rem;">No hay ingresos para los períodos de pago actuales.</p>' : ''}
         </div>
     `;
 };
@@ -300,16 +321,10 @@ const navigateToStatsPanel = (view: StatsPanelViewType) => {
     }
 };
 
-const navigateTo = (view: ViewType, state: NavigationState = {}) => {
-    currentView = view;
-    currentState = state;
-    const { recordType, recordId } = state;
-    
-    const rerenderStats = () => {
-        if (statsPanel) navigateToStatsPanel('statistics');
-    };
+const renderCurrentView = () => {
+    const { recordType, recordId } = currentState;
 
-    switch (view) {
+    switch (currentView) {
         case 'dashboard':
             renderDashboardView(viewContainers.dashboard, navigateTo);
             break;
@@ -323,13 +338,13 @@ const navigateTo = (view: ViewType, state: NavigationState = {}) => {
             renderSavingsListView(viewContainers.savings, navigateTo);
             break;
         case 'incomeForm':
-            if (recordType) renderIncomeFormView(viewContainers.incomeForm, navigateTo, recordType, recordId, rerenderStats);
+            if (recordType) renderIncomeFormView(viewContainers.incomeForm, navigateTo, recordType, recordId);
             break;
         case 'expenseForm':
-            if (recordType) renderExpenseFormView(viewContainers.expenseForm, navigateTo, recordType, recordId, rerenderStats);
+            if (recordType) renderExpenseFormView(viewContainers.expenseForm, navigateTo, recordType, recordId);
             break;
         case 'savingsForm':
-            if (recordType) renderSavingsFormView(viewContainers.savingsForm, navigateTo, recordType, recordId, rerenderStats);
+            if (recordType) renderSavingsFormView(viewContainers.savingsForm, navigateTo, recordType, recordId);
             break;
         case 'incomeDetails':
             if (recordId) renderIncomeDetailsView(viewContainers.incomeDetails, navigateTo, recordId);
@@ -341,10 +356,13 @@ const navigateTo = (view: ViewType, state: NavigationState = {}) => {
             if (recordId) renderSavingsDetailsView(viewContainers.savingsDetails, navigateTo, recordId);
             break;
     }
+};
+
+const navigateTo = (view: ViewType, state: NavigationState = {}) => {
+    currentView = view;
+    currentState = state;
+    renderCurrentView();
     manageViews(view.replace('List', '')); // Adjust for simple view IDs
-    if (navPanel) {
-        renderNavPanel(navPanel, navigateTo);
-    }
 };
 
 // --- Swipe Gesture Logic ---
@@ -420,6 +438,13 @@ if (root && mainAppTitle && statsPanel && navPanel) {
     createViewContainer('incomeDetails');
     createViewContainer('expenseDetails');
     createViewContainer('savingsDetails');
+
+    // Subscription to automatically refresh UI on state changes
+    subscribe(() => {
+        if (navPanel) renderNavPanel(navPanel, navigateTo);
+        navigateToStatsPanel('statistics');
+        renderCurrentView();
+    });
 
     // Initial render
     renderNavPanel(navPanel, navigateTo);

@@ -2,10 +2,25 @@ import { AppState } from '../types/index.js';
 
 const STORAGE_KEY = 'pesoAppData';
 
+let listeners: Array<() => void> = [];
+
+export const subscribe = (callback: () => void) => {
+    listeners.push(callback);
+    // Optional: return an unsubscribe function
+    return () => {
+        listeners = listeners.filter(l => l !== callback);
+    };
+};
+
+const notify = () => {
+    listeners.forEach(callback => callback());
+};
+
 export const saveState = (state: AppState) => {
     try {
         const serializedState = JSON.stringify(state);
         localStorage.setItem(STORAGE_KEY, serializedState);
+        notify();
     } catch (error) {
         console.error("Error saving state to localStorage", error);
     }

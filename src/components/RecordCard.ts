@@ -7,7 +7,7 @@ import { showConfirmationModal } from './common.js';
 // This is a simplified navigate function type for this component's needs
 type NavigateFunction = (view: string, state: { recordType?: 'Recurrente' | 'Único', recordId?: string }) => void;
 
-const deleteIncomeRecord = (id: string, rerenderCallback: () => void) => {
+const deleteIncomeRecord = (id: string) => {
     showConfirmationModal(
         'Confirmar Borrado',
         '¿Estás seguro de que quieres borrar este ingreso? Esta acción no se puede deshacer.',
@@ -16,13 +16,12 @@ const deleteIncomeRecord = (id: string, rerenderCallback: () => void) => {
             if (recordIndex > -1) {
                 appState.incomeRecords.splice(recordIndex, 1);
                 saveState(appState);
-                rerenderCallback();
             }
         }
     );
 };
 
-const deleteExpenseRecord = (id: string, rerenderCallback: () => void) => {
+const deleteExpenseRecord = (id: string) => {
     showConfirmationModal(
         'Confirmar Borrado',
         '¿Estás seguro de que quieres borrar este gasto? Esta acción no se puede deshacer.',
@@ -31,13 +30,12 @@ const deleteExpenseRecord = (id: string, rerenderCallback: () => void) => {
             if (recordIndex > -1) {
                 appState.expenseRecords.splice(recordIndex, 1);
                 saveState(appState);
-                rerenderCallback();
             }
         }
     );
 };
 
-const deleteSavingRecord = (id: string, rerenderCallback: () => void) => {
+const deleteSavingRecord = (id: string) => {
     showConfirmationModal(
         'Confirmar Borrado',
         '¿Estás seguro de que quieres borrar este ahorro? Esta acción no se puede deshacer.',
@@ -46,14 +44,13 @@ const deleteSavingRecord = (id: string, rerenderCallback: () => void) => {
             if (recordIndex > -1) {
                 appState.savingRecords.splice(recordIndex, 1);
                 saveState(appState);
-                rerenderCallback();
             }
         }
     );
 };
 
 
-export const createIncomeRecordCard = (record: IncomeRecord, navigate: NavigateFunction, rerenderCallback: () => void) => {
+export const createIncomeRecordCard = (record: IncomeRecord, navigate: NavigateFunction) => {
     const card = document.createElement('div');
     card.className = 'income-record-card';
 
@@ -105,7 +102,7 @@ export const createIncomeRecordCard = (record: IncomeRecord, navigate: NavigateF
         deleteButton.setAttribute('aria-label', `Borrar ingreso ${record.name}`);
         deleteButton.onclick = (e) => {
             e.stopPropagation(); // Prevent any parent click events
-            deleteIncomeRecord(record.id, rerenderCallback);
+            deleteIncomeRecord(record.id);
         };
     
         rightContainer.appendChild(amount);
@@ -124,7 +121,7 @@ export const createIncomeRecordCard = (record: IncomeRecord, navigate: NavigateF
     return card;
 };
 
-export const createExpenseRecordCard = (record: ExpenseRecord, navigate: NavigateFunction, rerenderCallback: () => void) => {
+export const createExpenseRecordCard = (record: ExpenseRecord, navigate: NavigateFunction) => {
     const card = document.createElement('div');
     card.className = 'income-record-card';
 
@@ -170,7 +167,7 @@ export const createExpenseRecordCard = (record: ExpenseRecord, navigate: Navigat
     deleteButton.setAttribute('aria-label', `Borrar gasto ${record.name}`);
     deleteButton.onclick = (e) => {
         e.stopPropagation(); // Prevent any parent click events
-        deleteExpenseRecord(record.id, rerenderCallback);
+        deleteExpenseRecord(record.id);
     };
 
     rightContainer.appendChild(amount);
@@ -187,7 +184,7 @@ export const createExpenseRecordCard = (record: ExpenseRecord, navigate: Navigat
     return card;
 };
 
-export const createSavingRecordCard = (record: SavingRecord, navigate: NavigateFunction, rerenderCallback: () => void) => {
+export const createSavingRecordCard = (record: SavingRecord, navigate: NavigateFunction) => {
     const card = document.createElement('div');
     card.className = 'income-record-card';
 
@@ -233,7 +230,7 @@ export const createSavingRecordCard = (record: SavingRecord, navigate: NavigateF
     deleteButton.setAttribute('aria-label', `Borrar ahorro ${record.name}`);
     deleteButton.onclick = (e) => {
         e.stopPropagation(); // Prevent any parent click events
-        deleteSavingRecord(record.id, rerenderCallback);
+        deleteSavingRecord(record.id);
     };
 
     rightContainer.appendChild(amount);

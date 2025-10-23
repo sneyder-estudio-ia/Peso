@@ -21,7 +21,7 @@ const renderExpenseList = (recordsToRender: ExpenseRecord[]) => {
         listContainer.appendChild(emptyMessage);
     } else {
         recordsToRender.forEach(record => {
-            const card = createExpenseRecordCard(record, localNavigate!, filterAndRenderExpenseList);
+            const card = createExpenseRecordCard(record, localNavigate!);
             listContainer.appendChild(card);
         });
     }

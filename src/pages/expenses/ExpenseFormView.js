@@ -1,15 +1,12 @@
 import { appState, saveState } from '../../state/store.js';
-import { ExpenseRecord, RecurrenceRule } from '../../types/index.js';
 import { parseCurrency, formatCurrency, handleNumericInputFormatting } from '../../utils/currency.js';
 import { showToast } from '../../components/Toast.js';
 
-type NavigateFunction = (view: string) => void;
-
 export const renderExpenseFormView = (
-    container: HTMLElement, 
-    navigate: NavigateFunction, 
-    type: 'Recurrente' | 'Único', 
-    recordId?: string,
+    container, 
+    navigate, 
+    type, 
+    recordId
 ) => {
     container.innerHTML = ''; // Clear previous content
 
@@ -43,25 +40,25 @@ export const renderExpenseFormView = (
     form.className = 'income-form';
     form.onsubmit = (e) => e.preventDefault();
 
-    const createFormField = (labelText: string, inputType: string, inputId: string, placeholder: string = '') => {
+    const createFormField = (labelText, inputType, inputId, placeholder = '') => {
         const formGroup = document.createElement('div');
         formGroup.className = 'form-group';
         const label = document.createElement('label');
         label.className = 'form-label';
         label.htmlFor = inputId;
         label.textContent = labelText;
-        let input: HTMLInputElement | HTMLTextAreaElement;
+        let input;
         if (inputType === 'textarea') {
             input = document.createElement('textarea');
             input.rows = 3;
         } else {
             input = document.createElement('input');
             if (inputType === 'number') {
-                (input as HTMLInputElement).type = 'text';
-                (input as HTMLInputElement).inputMode = 'decimal';
+                input.type = 'text';
+                input.inputMode = 'decimal';
                 input.addEventListener('input', handleNumericInputFormatting);
             } else {
-                (input as HTMLInputElement).type = inputType;
+                input.type = inputType;
             }
         }
         input.className = 'form-input';
@@ -87,29 +84,29 @@ export const renderExpenseFormView = (
         form.appendChild(dateField);
 
         if (isEditMode && recordToEdit) {
-            (amountField.querySelector('input') as HTMLInputElement).value = formatCurrency(recordToEdit.amount);
-            if(recordToEdit.date) (dateField.querySelector('input') as HTMLInputElement).value = recordToEdit.date;
+            amountField.querySelector('input').value = formatCurrency(recordToEdit.amount);
+            if(recordToEdit.date) dateField.querySelector('input').value = recordToEdit.date;
         }
         
         saveButton.onclick = () => {
             const formData = new FormData(form);
-            const name = formData.get('expense-name') as string;
-            const amountStr = formData.get('expense-amount') as string;
-            const date = formData.get('expense-date') as string;
+            const name = formData.get('expense-name');
+            const amountStr = formData.get('expense-amount');
+            const date = formData.get('expense-date');
 
             if (!name || !amountStr || !date) {
                 alert('Por favor, complete los campos Nombre, Monto y Fecha.');
                 return;
             }
 
-            const newRecord: ExpenseRecord = {
+            const newRecord = {
                 id: recordId || `exp-${Date.now()}`,
                 type: type,
                 name: name,
-                category: formData.get('expense-category') as string || 'General',
+                category: formData.get('expense-category') || 'General',
                 amount: parseCurrency(amountStr),
                 date: date,
-                description: formData.get('expense-description') as string,
+                description: formData.get('expense-description'),
             };
 
             if (isEditMode) {
@@ -149,7 +146,7 @@ export const renderExpenseFormView = (
         form.appendChild(durationField);
         form.appendChild(monthsPaidField);
 
-        const toggleInfiniteFields = (isInfinite: boolean) => {
+        const toggleInfiniteFields = (isInfinite) => {
             totalAmountField.style.display = isInfinite ? 'none' : 'flex';
             durationField.style.display = isInfinite ? 'none' : 'flex';
             monthsPaidField.style.display = isInfinite ? 'none' : 'flex';
@@ -176,7 +173,7 @@ export const renderExpenseFormView = (
         const detailsContainer = document.createElement('div');
         detailsContainer.id = 'expense-frequency-details-container';
         detailsContainer.className = 'frequency-details';
-        const frequencies: RecurrenceRule['type'][] = ['Diario', 'Semanal', 'Quincenal', 'Mensual'];
+        const frequencies = ['Diario', 'Semanal', 'Quincenal', 'Mensual'];
         frequencies.forEach(freq => {
             const option = document.createElement('div');
             option.className = 'radio-option';
@@ -193,7 +190,7 @@ export const renderExpenseFormView = (
             radioContainer.appendChild(option);
         });
         radioContainer.onchange = (e) => {
-            const target = e.target as HTMLInputElement;
+            const target = e.target;
             detailsContainer.innerHTML = '';
             if (target.value === 'Semanal') {
                 const weekSelect = document.createElement('select');
@@ -209,12 +206,12 @@ export const renderExpenseFormView = (
                 detailsContainer.appendChild(weekSelect);
             } else if (target.value === 'Quincenal') {
                 const day1Group = createFormField('Día 1', 'number', 'dayOfMonth1', '0');
-                const day1Input = day1Group.querySelector('input') as HTMLInputElement;
+                const day1Input = day1Group.querySelector('input');
                 day1Input.name = 'daysOfMonth';
                 day1Input.min = '1';
                 day1Input.max = '31';
                 const day2Group = createFormField('Día 2', 'number', 'dayOfMonth2', '0');
-                const day2Input = day2Group.querySelector('input') as HTMLInputElement;
+                const day2Input = day2Group.querySelector('input');
                 day2Input.name = 'daysOfMonth';
                 day2Input.min = '1';
                 day2Input.max = '31';
@@ -222,7 +219,7 @@ export const renderExpenseFormView = (
                 detailsContainer.appendChild(day2Group);
             } else if (target.value === 'Mensual') {
                 const dayGroup = createFormField('Día del mes', 'number', 'dayOfMonth1', '0');
-                const dayInput = dayGroup.querySelector('input') as HTMLInputElement;
+                const dayInput = dayGroup.querySelector('input');
                 dayInput.name = 'daysOfMonth';
                 dayInput.min = '1';
                 dayInput.max = '31';
@@ -234,34 +231,34 @@ export const renderExpenseFormView = (
         form.appendChild(frequencyGroup);
 
         if (isEditMode && recordToEdit?.recurrence) {
-            const freqRadio = form.querySelector(`input[name="expense-frequency"][value="${recordToEdit.recurrence.type}"]`) as HTMLInputElement;
+            const freqRadio = form.querySelector(`input[name="expense-frequency"][value="${recordToEdit.recurrence.type}"]`);
             if (freqRadio) {
                 freqRadio.checked = true;
                 freqRadio.dispatchEvent(new Event('change', { bubbles: true })); // Trigger details view
                 
                 const recurrence = recordToEdit.recurrence;
                 if (recurrence.type === 'Semanal' && recurrence.dayOfWeek) {
-                    (detailsContainer.querySelector('select') as HTMLSelectElement).value = recurrence.dayOfWeek;
+                    detailsContainer.querySelector('select').value = recurrence.dayOfWeek;
                 } else if (recurrence.type === 'Quincenal' && recurrence.daysOfMonth) {
                     const inputs = detailsContainer.querySelectorAll('input[name="daysOfMonth"]');
-                    if (inputs[0]) (inputs[0] as HTMLInputElement).value = String(recurrence.daysOfMonth[0] || '');
-                    if (inputs[1]) (inputs[1] as HTMLInputElement).value = String(recurrence.daysOfMonth[1] || '');
+                    if (inputs[0]) inputs[0].value = String(recurrence.daysOfMonth[0] || '');
+                    if (inputs[1]) inputs[1].value = String(recurrence.daysOfMonth[1] || '');
                 } else if (recurrence.type === 'Mensual' && recurrence.daysOfMonth) {
-                    (detailsContainer.querySelector('input') as HTMLInputElement).value = String(recurrence.daysOfMonth[0] || '');
+                    detailsContainer.querySelector('input').value = String(recurrence.daysOfMonth[0] || '');
                 }
             }
         }
 
         saveButton.onclick = () => {
             const formData = new FormData(form);
-            const name = formData.get('expense-name') as string;
-            const installmentAmountStr = formData.get('expense-amount') as string;
-            const frequencyType = formData.get('expense-frequency') as RecurrenceRule['type'];
-            const isInfinite = (form.querySelector('#expense-is-infinite') as HTMLInputElement).checked;
+            const name = formData.get('expense-name');
+            const installmentAmountStr = formData.get('expense-amount');
+            const frequencyType = formData.get('expense-frequency');
+            const isInfinite = form.querySelector('#expense-is-infinite').checked;
 
-            const totalAmountStr = formData.get('expense-total-amount') as string;
-            const durationInMonthsStr = formData.get('expense-duration') as string;
-            const monthsPaidStr = formData.get('expense-months-paid') as string;
+            const totalAmountStr = formData.get('expense-total-amount');
+            const durationInMonthsStr = formData.get('expense-duration');
+            const monthsPaidStr = formData.get('expense-months-paid');
 
             if (!name || !installmentAmountStr || !frequencyType) {
                 alert('Por favor, complete Nombre, Monto de Cuota y Frecuencia.');
@@ -272,20 +269,20 @@ export const renderExpenseFormView = (
                 return;
             }
 
-            const recurrence: RecurrenceRule = { type: frequencyType };
+            const recurrence = { type: frequencyType };
             if (frequencyType === 'Semanal') {
-                recurrence.dayOfWeek = formData.get('dayOfWeek') as string;
+                recurrence.dayOfWeek = formData.get('dayOfWeek');
             } else if (frequencyType === 'Quincenal' || frequencyType === 'Mensual') {
-                recurrence.daysOfMonth = (formData.getAll('daysOfMonth') as string[]).map(d => parseInt(d, 10)).filter(d => d > 0);
+                recurrence.daysOfMonth = (formData.getAll('daysOfMonth')).map(d => parseInt(d, 10)).filter(d => d > 0);
             }
 
-            const newRecord: ExpenseRecord = {
+            const newRecord = {
                 id: recordId || `exp-${Date.now()}`,
                 type: type,
                 name: name,
-                category: formData.get('expense-category') as string || 'General',
+                category: formData.get('expense-category') || 'General',
                 amount: parseCurrency(installmentAmountStr),
-                description: formData.get('expense-description') as string,
+                description: formData.get('expense-description'),
                 recurrence: recurrence,
                 isInfinite: isInfinite,
                 totalAmount: isInfinite ? undefined : parseCurrency(totalAmountStr),
@@ -307,15 +304,15 @@ export const renderExpenseFormView = (
     }
 
     if (isEditMode && recordToEdit) {
-        (nameField.querySelector('input') as HTMLInputElement).value = recordToEdit.name;
-        (categoryField.querySelector('input') as HTMLInputElement).value = recordToEdit.category;
-        (descriptionField.querySelector('textarea') as HTMLTextAreaElement).value = recordToEdit.description;
+        nameField.querySelector('input').value = recordToEdit.name;
+        categoryField.querySelector('input').value = recordToEdit.category;
+        descriptionField.querySelector('textarea').value = recordToEdit.description;
         if (type === 'Recurrente') {
-            (form.querySelector('[name="expense-amount"]') as HTMLInputElement).value = formatCurrency(recordToEdit.amount);
+            form.querySelector('[name="expense-amount"]').value = formatCurrency(recordToEdit.amount);
             if (!recordToEdit.isInfinite) {
-                (form.querySelector('[name="expense-total-amount"]') as HTMLInputElement).value = formatCurrency(recordToEdit.totalAmount);
-                (form.querySelector('[name="expense-duration"]') as HTMLInputElement).value = String(recordToEdit.durationInMonths || '');
-                (form.querySelector('[name="expense-months-paid"]') as HTMLInputElement).value = String(recordToEdit.installmentsPaid || '');
+                form.querySelector('[name="expense-total-amount"]').value = formatCurrency(recordToEdit.totalAmount);
+                form.querySelector('[name="expense-duration"]').value = String(recordToEdit.durationInMonths || '');
+                form.querySelector('[name="expense-months-paid"]').value = String(recordToEdit.installmentsPaid || '');
             }
         }
     }
