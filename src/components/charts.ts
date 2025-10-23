@@ -13,35 +13,50 @@ export const createExpenseBreakdownChart = (data: ChartData[], total: number, al
 
     const chartContainer = document.createElement('div');
     chartContainer.className = 'pie-chart-container';
+    chartContainer.style.marginTop = '20px';
+    chartContainer.style.marginBottom = '0'; // Let parent control space below
+
 
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 36 36');
+    svg.setAttribute('viewBox', '0 0 42 42');
     svg.classList.add('pie-chart');
 
-    let accumulatedPercentage = 0;
-    const radius = 15.9154943092; // Radius for a circumference of 100
+    const cx = 21;
+    const cy = 21;
+    const radius = 15.9154943092;
+    const strokeWidth = 5;
 
+    // Background track
+    const track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    track.setAttribute('cx', String(cx));
+    track.setAttribute('cy', String(cy));
+    track.setAttribute('r', String(radius));
+    track.setAttribute('fill', 'transparent');
+    track.setAttribute('stroke', '#30363d');
+    track.setAttribute('stroke-width', String(strokeWidth));
+    svg.appendChild(track);
+
+    let accumulatedPercentage = 0;
     data.forEach(item => {
         const percentage = total > 0 ? (item.value / total) * 100 : 0;
+        if (percentage === 0) return;
 
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('r', String(radius));
-        circle.setAttribute('cx', '18');
-        circle.setAttribute('cy', '18');
-        circle.setAttribute('fill', 'transparent');
-        circle.setAttribute('stroke', item.color);
-        circle.setAttribute('stroke-width', '3.5');
-        // Use a tiny gap to distinguish segments
-        const segmentLength = percentage > 1 ? percentage - 0.5 : percentage;
-        const gapLength = 100 - segmentLength;
-        circle.setAttribute('stroke-dasharray', `${segmentLength} ${gapLength}`);
-        circle.setAttribute('stroke-dashoffset', String(-accumulatedPercentage));
-        circle.style.transform = `rotate(-90deg)`;
-        circle.style.transformOrigin = 'center';
-        circle.classList.add('pie-segment');
-        circle.dataset.label = item.label;
-        
-        svg.appendChild(circle);
+        const segment = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        segment.setAttribute('cx', String(cx));
+        segment.setAttribute('cy', String(cy));
+        segment.setAttribute('r', String(radius));
+        segment.setAttribute('fill', 'transparent');
+        segment.setAttribute('stroke', item.color);
+        segment.setAttribute('stroke-width', String(strokeWidth));
+        segment.setAttribute('stroke-linecap', 'round');
+
+        const segmentLength = percentage > 0.5 ? percentage - 0.5 : percentage; // Gap
+        segment.setAttribute('stroke-dasharray', `${segmentLength} ${100 - segmentLength}`);
+        segment.setAttribute('stroke-dashoffset', String(25 - accumulatedPercentage)); // Start at top and offset
+        segment.classList.add('pie-segment');
+        segment.dataset.label = item.label;
+
+        svg.appendChild(segment);
         accumulatedPercentage += percentage;
     });
 
@@ -108,7 +123,7 @@ export const createExpenseBreakdownChart = (data: ChartData[], total: number, al
 
             // Populate details
             const categoryExpenses = allExpenses
-                .filter(exp => (exp.category || 'General') === item.label)
+                .filter(exp => (exp.isGroup ? exp.name : (exp.category || 'General')) === item.label)
                 .sort((a,b) => b.amount - a.amount);
 
             detailsContainer.innerHTML = '';

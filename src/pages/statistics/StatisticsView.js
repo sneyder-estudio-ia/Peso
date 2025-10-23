@@ -1,13 +1,110 @@
 import { appState } from '../../state/store.js';
-import { createCard, createSimpleCard } from '../../components/common.js';
-import { formatCurrency } from '../../utils/currency.js';
+import { createSimpleCard } from '../../components/common.js';
 import { createExpenseBreakdownChart } from '../../components/charts.js';
 import { createCalendar } from '../../components/Calendar.js';
+import { formatCurrency } from '../../utils/currency.js';
 const categoryColors = [
     '#388bfd', '#238636', '#d29922', '#f85149', '#a371f7', '#1f6feb', '#da3633', '#e36209'
 ];
 const dayNameToIndex = {
     'Domingo': 0, 'Lunes': 1, 'Martes': 2, 'Miércoles': 3, 'Jueves': 4, 'Viernes': 5, 'Sábado': 6
+};
+const calculateProjectedMonthValue = (records, year, month // 0-11
+) => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let total = 0;
+    records.forEach(record => {
+        if (record.isGroup && record.items) {
+            record.items.forEach((item) => {
+                if (record.type === 'Único' && item.date) {
+                    const [recYear, recMonth] = item.date.split('-').map(Number);
+                    if (recYear === year && recMonth === month + 1) {
+                        total += item.amount;
+                    }
+                }
+                else if (record.type === 'Recurrente' && item.recurrence) {
+                    let isCompleted = false;
+                    if ('durationInMonths' in item && typeof item.durationInMonths === 'number' && item.durationInMonths > 0 && !item.isInfinite) {
+                        if ((item.installmentsPaid ?? 0) >= item.durationInMonths) {
+                            isCompleted = true;
+                        }
+                    }
+                    if (!isCompleted) {
+                        switch (item.recurrence.type) {
+                            case 'Diario':
+                                total += item.amount * daysInMonth;
+                                break;
+                            case 'Semanal':
+                                if (item.recurrence.dayOfWeek) {
+                                    const targetDayIndex = dayNameToIndex[item.recurrence.dayOfWeek];
+                                    if (targetDayIndex !== undefined) {
+                                        let count = 0;
+                                        for (let day = 1; day <= daysInMonth; day++) {
+                                            const date = new Date(year, month, day);
+                                            if (date.getDay() === targetDayIndex)
+                                                count++;
+                                        }
+                                        total += item.amount * count;
+                                    }
+                                }
+                                break;
+                            case 'Quincenal':
+                            case 'Mensual':
+                                if (item.recurrence.daysOfMonth) {
+                                    total += item.amount * item.recurrence.daysOfMonth.filter(d => d <= daysInMonth).length;
+                                }
+                                break;
+                        }
+                    }
+                }
+            });
+        }
+        else {
+            if (record.type === 'Único' && record.date) {
+                const [recYear, recMonth] = record.date.split('-').map(Number);
+                if (recYear === year && recMonth === month + 1) {
+                    total += record.amount;
+                }
+            }
+            else if (record.type === 'Recurrente' && record.recurrence) {
+                let isCompleted = false;
+                if ('durationInMonths' in record && typeof record.durationInMonths === 'number' && record.durationInMonths > 0 && !record.isInfinite) {
+                    if ((record.installmentsPaid ?? 0) >= record.durationInMonths) {
+                        isCompleted = true;
+                    }
+                }
+                if (!isCompleted) {
+                    switch (record.recurrence.type) {
+                        case 'Diario':
+                            total += record.amount * daysInMonth;
+                            break;
+                        case 'Semanal':
+                            if (record.recurrence.dayOfWeek) {
+                                const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek];
+                                if (targetDayIndex !== undefined) {
+                                    let count = 0;
+                                    for (let day = 1; day <= daysInMonth; day++) {
+                                        const date = new Date(year, month, day);
+                                        if (date.getDay() === targetDayIndex) {
+                                            count++;
+                                        }
+                                    }
+                                    total += record.amount * count;
+                                }
+                            }
+                            break;
+                        case 'Quincenal':
+                        case 'Mensual':
+                            if (record.recurrence.daysOfMonth) {
+                                total += record.amount * record.recurrence.daysOfMonth.filter(d => d <= daysInMonth).length;
+                            }
+                            break;
+                    }
+                }
+            }
+        }
+    });
+    return total;
 };
 const calculateValueInDateRange = (records, startDate, endDate) => {
     let total = 0;
@@ -95,21 +192,18 @@ const calculateValueInDateRange = (records, startDate, endDate) => {
                                 break;
                             case 'Semanal':
                                 const targetDayIndex = dayNameToIndex[record.recurrence.dayOfWeek];
-                                if (currentDate.getDay() === targetDayIndex) {
+                                if (currentDate.getDay() === targetDayIndex)
                                     eventHappens = true;
-                                }
                                 break;
                             case 'Quincenal':
                             case 'Mensual':
                                 const dayOfMonth = currentDate.getDate();
-                                if (record.recurrence.daysOfMonth?.includes(dayOfMonth)) {
+                                if (record.recurrence.daysOfMonth?.includes(dayOfMonth))
                                     eventHappens = true;
-                                }
                                 break;
                         }
-                        if (eventHappens) {
+                        if (eventHappens)
                             total += record.amount;
-                        }
                         currentDate.setDate(currentDate.getDate() + 1);
                     }
                 }
@@ -119,117 +213,139 @@ const calculateValueInDateRange = (records, startDate, endDate) => {
     return total;
 };
 export const renderStatisticsView = (container, navigate) => {
-    container.innerHTML = ''; // Clear previous content
-    const titleContainer = document.createElement('div');
-    titleContainer.className = 'stats-title-container';
-    const title = document.createElement('h2');
-    title.className = 'stats-title';
-    title.textContent = 'Análisis y Estadísticas';
-    const settingsButton = document.createElement('button');
-    settingsButton.className = 'btn-settings';
-    settingsButton.innerHTML = '&#9881;'; // Gear icon
-    settingsButton.setAttribute('aria-label', 'Configuración');
-    settingsButton.onclick = () => navigate('settings');
-    titleContainer.appendChild(title);
-    titleContainer.appendChild(settingsButton);
-    // --- Calendar ---
-    const calendarSection = document.createElement('div');
-    calendarSection.className = 'stats-section';
+    container.innerHTML = `
+        <div class="stats-title-container">
+            <h2 class="stats-title">Análisis y Estadísticas</h2>
+            <button class="btn-settings" aria-label="Configuración">&#9881;</button>
+        </div>
+        <div id="stats-calendar-section" class="stats-section"></div>
+        <div id="stats-expense-section" class="stats-section"></div>
+    `;
+    container.querySelector('.btn-settings').addEventListener('click', () => navigate('settings'));
+    const calendarSection = container.querySelector('#stats-calendar-section');
+    const expenseSection = container.querySelector('#stats-expense-section');
     let currentDate = new Date();
+    const renderExpenseChart = (date) => {
+        expenseSection.innerHTML = ''; // Clear previous chart
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const monthName = date.toLocaleString('es-ES', { month: 'long' });
+        // --- Calculate Periodic Expense (based on today's date) ---
+        const allRecurringRecords = [...appState.incomeRecords, ...appState.expenseRecords]
+            .filter(r => r.type === 'Recurrente' && r.recurrence);
+        let dominantFrequency = 'Mensual';
+        if (allRecurringRecords.some(r => r.recurrence.type === 'Diario'))
+            dominantFrequency = 'Diario';
+        else if (allRecurringRecords.some(r => r.recurrence.type === 'Semanal'))
+            dominantFrequency = 'Semanal';
+        else if (allRecurringRecords.some(r => r.recurrence.type === 'Quincenal'))
+            dominantFrequency = 'Quincenal';
+        let periodStartDate;
+        let periodEndDate;
+        const todayDate = new Date();
+        const todayDay = todayDate.getDate();
+        const todayYear = todayDate.getFullYear();
+        const todayMonth = todayDate.getMonth();
+        const daysInCurrentMonth = new Date(todayYear, todayMonth + 1, 0).getDate();
+        switch (dominantFrequency) {
+            case 'Diario':
+                periodStartDate = new Date(todayDate.setHours(0, 0, 0, 0));
+                periodEndDate = new Date(todayDate.setHours(23, 59, 59, 999));
+                break;
+            case 'Semanal':
+                const dayOfWeek = todayDate.getDay();
+                const diff = todayDay - (dayOfWeek === 0 ? 6 : dayOfWeek - 1);
+                periodStartDate = new Date(todayYear, todayMonth, diff);
+                periodEndDate = new Date(todayYear, todayMonth, diff + 6);
+                break;
+            case 'Quincenal':
+                if (todayDay <= 15) {
+                    periodStartDate = new Date(todayYear, todayMonth, 1);
+                    periodEndDate = new Date(todayYear, todayMonth, 15);
+                }
+                else {
+                    periodStartDate = new Date(todayYear, todayMonth, 16);
+                    periodEndDate = new Date(todayYear, todayMonth, daysInCurrentMonth);
+                }
+                break;
+            default: // Mensual
+                periodStartDate = new Date(todayYear, todayMonth, 1);
+                periodEndDate = new Date(todayYear, todayMonth, daysInCurrentMonth);
+                break;
+        }
+        const periodicExpense = calculateValueInDateRange(appState.expenseRecords, periodStartDate, periodEndDate);
+        // --- Calculate Monthly Expense (based on calendar date) ---
+        const totalMonthlyExpense = calculateProjectedMonthValue(appState.expenseRecords, year, month);
+        const expenseCard = createSimpleCard(`Desglose (${monthName} ${year})`);
+        // --- Create Totals Container ---
+        const totalsContainer = document.createElement('div');
+        totalsContainer.style.display = 'flex';
+        totalsContainer.style.justifyContent = 'space-around';
+        totalsContainer.style.gap = '15px';
+        totalsContainer.style.marginTop = '20px';
+        totalsContainer.style.marginBottom = '25px';
+        const periodicTotalContainer = document.createElement('div');
+        periodicTotalContainer.style.textAlign = 'center';
+        const periodicValueEl = document.createElement('div');
+        periodicValueEl.className = 'primary-value expense';
+        periodicValueEl.textContent = formatCurrency(periodicExpense, { includeSymbol: true });
+        const periodicLabelEl = document.createElement('div');
+        periodicLabelEl.className = 'label';
+        periodicLabelEl.style.textTransform = 'capitalize';
+        const dominantFrequencyLabel = dominantFrequency.charAt(0).toUpperCase() + dominantFrequency.slice(1);
+        periodicLabelEl.textContent = `Gasto (${dominantFrequencyLabel})`;
+        periodicTotalContainer.appendChild(periodicValueEl);
+        periodicTotalContainer.appendChild(periodicLabelEl);
+        const monthlyTotalContainer = document.createElement('div');
+        monthlyTotalContainer.style.textAlign = 'center';
+        const monthlyValueEl = document.createElement('div');
+        monthlyValueEl.className = 'primary-value expense';
+        monthlyValueEl.textContent = formatCurrency(totalMonthlyExpense, { includeSymbol: true });
+        const monthlyLabelEl = document.createElement('div');
+        monthlyLabelEl.className = 'label';
+        monthlyLabelEl.style.textTransform = 'capitalize';
+        monthlyLabelEl.textContent = 'Gasto Esperado (Mes)';
+        monthlyTotalContainer.appendChild(monthlyValueEl);
+        monthlyTotalContainer.appendChild(monthlyLabelEl);
+        totalsContainer.appendChild(periodicTotalContainer);
+        totalsContainer.appendChild(monthlyTotalContainer);
+        if (totalMonthlyExpense > 0) {
+            const breakdown = {};
+            appState.expenseRecords.forEach(record => {
+                const monthlyValue = calculateProjectedMonthValue([record], year, month);
+                if (monthlyValue > 0) {
+                    const category = record.isGroup ? record.name : (record.category || 'General');
+                    breakdown[category] = (breakdown[category] || 0) + monthlyValue;
+                }
+            });
+            const chartData = Object.entries(breakdown)
+                .map(([label, value], index) => ({
+                label, value, color: categoryColors[index % categoryColors.length]
+            }))
+                .sort((a, b) => b.value - a.value);
+            const breakdownChartAndLegend = createExpenseBreakdownChart(chartData, totalMonthlyExpense, appState.expenseRecords);
+            const chartElement = breakdownChartAndLegend.querySelector('.pie-chart-container');
+            chartElement?.insertAdjacentElement('afterend', totalsContainer);
+            expenseCard.appendChild(breakdownChartAndLegend);
+        }
+        else {
+            expenseCard.appendChild(totalsContainer);
+            const emptyMessage = document.createElement('p');
+            emptyMessage.className = 'empty-list-message';
+            emptyMessage.textContent = `No hay gastos para ${monthName} ${year}.`;
+            expenseCard.appendChild(emptyMessage);
+        }
+        expenseSection.appendChild(expenseCard);
+    };
     const rerenderCalendar = (newDate) => {
         currentDate = newDate;
         calendarSection.innerHTML = '';
         const calendar = createCalendar(currentDate, rerenderCalendar);
         calendarSection.appendChild(calendar);
+        renderExpenseChart(newDate); // Update chart when calendar changes
     };
+    // Initial Renders
     const calendar = createCalendar(currentDate, rerenderCalendar);
     calendarSection.appendChild(calendar);
-    // --- Balance Card ---
-    const balanceSection = document.createElement('div');
-    balanceSection.className = 'stats-section';
-    const now = new Date();
-    // Get earliest date from record creation IDs and unique record dates
-    const timestampsFromIds = [...appState.incomeRecords, ...appState.expenseRecords]
-        .map(r => {
-        const parts = r.id.split('-');
-        const lastPart = parts.pop();
-        if (!lastPart)
-            return null;
-        // Handle cases like 'inc-sal-sal-TIMESTAMP'
-        const potentialTimestampStr = lastPart.split('-').pop();
-        if (potentialTimestampStr) {
-            const timestamp = parseInt(potentialTimestampStr, 10);
-            if (!isNaN(timestamp))
-                return timestamp;
-        }
-        return null;
-    })
-        .filter(ts => ts !== null);
-    const datesFromUniqueRecords = [];
-    const processRecordsForDates = (records) => {
-        records.forEach(record => {
-            if (record.type === 'Único') {
-                if (record.isGroup) {
-                    record.items?.forEach(item => {
-                        if (item.date) {
-                            datesFromUniqueRecords.push(new Date(item.date + 'T00:00:00').getTime());
-                        }
-                    });
-                }
-                else if (record.date) {
-                    datesFromUniqueRecords.push(new Date(record.date + 'T00:00:00').getTime());
-                }
-            }
-        });
-    };
-    processRecordsForDates(appState.incomeRecords);
-    processRecordsForDates(appState.expenseRecords);
-    const allHistoricalTimestamps = [...timestampsFromIds, ...datesFromUniqueRecords];
-    const startOfTime = allHistoricalTimestamps.length > 0 ? new Date(Math.min(...allHistoricalTimestamps)) : now;
-    const totalIncome = calculateValueInDateRange(appState.incomeRecords, startOfTime, now);
-    const totalExpense = calculateValueInDateRange(appState.expenseRecords, startOfTime, now);
-    const balance = totalIncome - totalExpense;
-    const balanceCard = createCard('Balance General (Histórico)', formatCurrency(balance, { includeSymbol: true }), balance >= 0 ? 'income' : 'expense', 'Ingresos vs Gastos Totales', `${formatCurrency(totalIncome, { includeSymbol: true })} / ${formatCurrency(totalExpense, { includeSymbol: true })}`);
-    balanceCard.classList.add('balance-card');
-    balanceSection.appendChild(balanceCard);
-    // --- Expense Breakdown ---
-    const expenseSection = document.createElement('div');
-    expenseSection.className = 'stats-section';
-    const expenseCard = createSimpleCard('Desglose de Gastos');
-    const totalExpenseForChart = appState.expenseRecords.reduce((sum, record) => sum + record.amount, 0);
-    if (appState.expenseRecords.length > 0) {
-        const expenseByCategory = appState.expenseRecords.reduce((acc, record) => {
-            if (record.isGroup) {
-                // For a group, use its name as the category label.
-                const category = record.name || 'Grupo';
-                acc[category] = (acc[category] || 0) + record.amount;
-            }
-            else {
-                // For a normal expense, use its category.
-                const category = record.category || 'General';
-                acc[category] = (acc[category] || 0) + record.amount;
-            }
-            return acc;
-        }, {});
-        const chartData = Object.entries(expenseByCategory)
-            .map(([label, value], index) => ({
-            label,
-            value,
-            color: categoryColors[index % categoryColors.length]
-        }))
-            .sort((a, b) => b.value - a.value);
-        const breakdownChart = createExpenseBreakdownChart(chartData, totalExpenseForChart, appState.expenseRecords);
-        expenseCard.appendChild(breakdownChart);
-    }
-    else {
-        const emptyMessage = document.createElement('p');
-        emptyMessage.className = 'empty-list-message';
-        emptyMessage.textContent = 'No hay gastos para analizar.';
-        expenseCard.appendChild(emptyMessage);
-    }
-    expenseSection.appendChild(expenseCard);
-    container.appendChild(titleContainer);
-    container.appendChild(calendarSection);
-    container.appendChild(balanceSection);
-    container.appendChild(expenseSection);
+    renderExpenseChart(currentDate);
 };
