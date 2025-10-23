@@ -374,7 +374,7 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     const monthlyExpense = calculateProjectedMonthValue(appState.expenseRecords, currentYear, currentMonth);
     
 
-    // --- Manually create the income card to add the frequency label ---
+    // --- Manually create the income card to show remaining amount as primary ---
     const incomeCard = document.createElement('div');
     incomeCard.className = 'card';
     incomeCard.style.cursor = 'pointer';
@@ -382,7 +382,7 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
 
     const incomeCardTitle = document.createElement('h2');
     incomeCardTitle.className = 'card-title';
-    incomeCardTitle.textContent = 'Ingreso';
+    incomeCardTitle.textContent = 'Balance Actual';
 
     const primaryValueWrapper = document.createElement('div');
     primaryValueWrapper.className = 'primary-value-wrapper';
@@ -393,40 +393,41 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
     frequencyLabelEl.textContent = dominantFrequency;
     primaryValueWrapper.appendChild(frequencyLabelEl);
     
-    // THEN add the primary value (Income for the period)
-    const incomePrimaryValueEl = document.createElement('div');
-    incomePrimaryValueEl.className = 'primary-value income';
-    incomePrimaryValueEl.textContent = formatCurrency(incomeInCurrentPeriod, { includeSymbol: true });
-    primaryValueWrapper.appendChild(incomePrimaryValueEl);
+    // Set the primary value to be the REMAINING amount
+    const remainingPrimaryValueEl = document.createElement('div');
+    // Color code: green if positive or zero, red if negative
+    remainingPrimaryValueEl.className = remainingAmount >= 0 ? 'primary-value income' : 'primary-value expense';
+    remainingPrimaryValueEl.textContent = formatCurrency(remainingAmount, { includeSymbol: true });
+    primaryValueWrapper.appendChild(remainingPrimaryValueEl);
 
     incomeCard.appendChild(incomeCardTitle);
     incomeCard.appendChild(primaryValueWrapper);
     
-    // --- Create Remaining Value Row ---
-    const remainingWrapper = document.createElement('div');
-    remainingWrapper.style.display = 'flex';
-    remainingWrapper.style.justifyContent = 'center';
-    remainingWrapper.style.alignItems = 'baseline';
-    remainingWrapper.style.gap = '8px';
-    remainingWrapper.style.marginTop = '4px';
+    // --- Create Total Income Row (less prominent) ---
+    const totalIncomeWrapper = document.createElement('div');
+    totalIncomeWrapper.style.display = 'flex';
+    totalIncomeWrapper.style.justifyContent = 'center';
+    totalIncomeWrapper.style.alignItems = 'baseline';
+    totalIncomeWrapper.style.gap = '8px';
+    totalIncomeWrapper.style.marginTop = '4px';
 
-    const remainingLabel = document.createElement('div');
-    remainingLabel.className = 'label';
-    remainingLabel.textContent = 'Restante';
-    remainingLabel.style.marginBottom = '0';
-    remainingLabel.style.textTransform = 'capitalize';
+    const totalIncomeLabel = document.createElement('div');
+    totalIncomeLabel.className = 'label';
+    totalIncomeLabel.textContent = 'Ingreso del Periodo';
+    totalIncomeLabel.style.marginBottom = '0';
+    totalIncomeLabel.style.textTransform = 'capitalize';
 
-    const remainingValueEl = document.createElement('div');
-    // Using 'income-record-amount' for font size/weight and 'savings' for blue color
-    remainingValueEl.className = 'income-record-amount savings'; 
-    remainingValueEl.textContent = formatCurrency(remainingAmount, { includeSymbol: true });
+    const totalIncomeValueEl = document.createElement('div');
+    totalIncomeValueEl.className = 'secondary-value';
+    totalIncomeValueEl.style.color = '#388bfd'; // Make it blue as requested
+    totalIncomeValueEl.textContent = formatCurrency(incomeInCurrentPeriod, { includeSymbol: true });
     
-    remainingWrapper.appendChild(remainingLabel);
-    remainingWrapper.appendChild(remainingValueEl);
+    totalIncomeWrapper.appendChild(totalIncomeLabel);
+    totalIncomeWrapper.appendChild(totalIncomeValueEl);
 
-    incomeCard.appendChild(remainingWrapper);
+    incomeCard.appendChild(totalIncomeWrapper);
 
-    // --- Create secondary value with label on the left ---
+    // --- Create 'calculo por mes' value (secondary value) ---
     const secondaryValueWrapper = document.createElement('div');
     secondaryValueWrapper.style.display = 'flex';
     secondaryValueWrapper.style.justifyContent = 'center';
@@ -436,8 +437,8 @@ export const renderDashboardView = (container: HTMLElement, navigate: NavigateFu
 
     const secondaryLabel = document.createElement('div');
     secondaryLabel.className = 'label';
-    secondaryLabel.textContent = 'calculo por mes';
-    secondaryLabel.style.marginBottom = '0'; // Override default margin from .label
+    secondaryLabel.textContent = 'Ingreso Mensual (Est)';
+    secondaryLabel.style.marginBottom = '0'; 
     secondaryLabel.style.textTransform = 'capitalize';
 
     const incomeSecondaryValueEl = document.createElement('div');
